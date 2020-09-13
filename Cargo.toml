@@ -1,0 +1,24 @@
+[package]
+name = "expenses"
+version = "0.1.0"
+authors = ["Artem Privalov <privalov.dev@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dotenv = "0.15"
+serde = { version = "1.0.116", features = ["derive"] }
+serde_json = "1.0.57"
+telegram-bot = { git = 'https://github.com/telegram-rs/telegram-bot' }
+tokio-core = "0.1.17"
+futures = "0.3.5"
+tokio = { version = "0.2", features = ["full"] }
+reqwest = { version = "0.10.8", features = ["json"] }
+log = "0.4.8"
+strum = "0.18.0"
+strum_macros = "0.18.0"
+
+[dev-dependencies]
+mockito = "0.27.0"
+serial_test = "0.5.0"
