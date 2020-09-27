@@ -41,3 +41,28 @@ impl fmt::Display for TelegramError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::telegram::error::TelegramError;
+    use serde::de::Error;
+    use serde_json::error::Error as SerdeError;
+
+    #[test]
+    fn fmt_telegram_unsuccessful() {
+        let error = TelegramError::Unsuccessful(String::from("unsuccessful sending"));
+        assert_eq!(
+            format!("Fail due to {}", error),
+            "Fail due to unsuccessful sending"
+        );
+    }
+
+    #[test]
+    fn fmt_telegram_malformed_response() {
+        let error = TelegramError::MalformedResponse(SerdeError::custom("malformed response"));
+        assert_eq!(
+            format!("Fail due to {}", error),
+            "Fail due to malformed response"
+        );
+    }
+}

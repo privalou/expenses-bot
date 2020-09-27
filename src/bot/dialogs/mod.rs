@@ -4,10 +4,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub use self::feedback::Feedback;
+pub use self::start::Start;
 use crate::bot::dialogs::entity::DialogEntity;
 
 mod entity;
 mod feedback;
+mod start;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dialog<T>
@@ -55,7 +57,7 @@ mod tests {
 
     #[test]
     fn conversion_works() {
-        let dialog = Dialog::<Feedback>::new("123".to_string());
+        let dialog = Dialog::<Start>::new("123".to_string());
         // TODO: is there some way to do the conversion without cloning?
         let command: DialogEntity = (dialog.clone()).into();
 
@@ -63,27 +65,27 @@ mod tests {
             command,
             DialogEntity {
                 user_id: "123".to_string(),
-                command: "/feedback".to_string(),
-                step: "Start".to_string(),
+                command: "/start".to_string(),
+                step: "FirstStep".to_string(),
                 data: "{}".to_string(),
             }
         );
-        let mut dialog_converted: Dialog<Feedback> = command.into();
+        let mut dialog_converted: Dialog<Start> = command.into();
         assert_eq!(dialog_converted, dialog);
 
         dialog_converted
             .data
-            .insert(Feedback::Start, "payload".to_string());
-        dialog_converted.current_step = Feedback::Start;
+            .insert(Start::FirstStep, "payload".to_string());
+        dialog_converted.current_step = Start::Currency;
         let command_converted: DialogEntity = (dialog_converted.clone()).into();
 
         assert_eq!(
             command_converted,
             DialogEntity {
                 user_id: "123".to_string(),
-                command: "/feedback".to_string(),
-                step: "Start".to_string(),
-                data: r#"{"Start":"payload"}"#.to_string(),
+                command: "/start".to_string(),
+                step: "Currency".to_string(),
+                data: r#"{"FirstStep":"payload"}"#.to_string(),
             }
         )
     }

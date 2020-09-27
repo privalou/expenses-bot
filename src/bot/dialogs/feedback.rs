@@ -32,6 +32,16 @@ impl Dialog<Feedback> {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn new_with(user_id: String, current_step: Feedback) -> Self {
+        Dialog {
+            command: "/feedback".to_string(),
+            user_id,
+            current_step,
+            data: HashMap::new(),
+        }
+    }
+
     pub async fn handle_current_step(
         &mut self,
         telegram_client: &TelegramClient,
@@ -59,20 +69,68 @@ impl Dialog<Feedback> {
                 telegram_client
                     .send_message(&Message {
                         chat_id: author_id,
-                        text: &format!("Received input from user({}):\n{}", &self.user_id, input),
-                        ..Default::default()
-                    })
-                    .await?;
-
-                telegram_client
-                    .send_message(&Message {
-                        chat_id: &self.user_id,
-                        text: "Passed your feedback to my creator. Thanks for the input!",
+                        text: &format!("Thanks, {}, for you priceless feedback!", &self.user_id),
                         ..Default::default()
                     })
                     .await?;
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::telegram::test_helpers::mock_send_message_success;
+    use mockito::server_url;
+
+    const TOKEN: &str = "token";
+    const USER_ID: &str = "123";
+
+    const FEEDBACK_TEXT: &str = r#"
+You can write your feedback. If you want the author to get back to you, leave your email.
+Or you can contact the author via telegram: @privalou
+Übermensch appoach is creating issue at https://github.com/privalou/expenses-bot
+"#;
+    #[tokio::test]
+    async fn handle_current_step_success_start() {
+        let url = &server_url();
+        let feedback_command_message = Message {
+            chat_id: USER_ID,
+            text: FEEDBACK_TEXT,
+            ..Default::default()
+        };
+        let mock = mock_send_message_success(TOKEN, &feedback_command_message);
+
+        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
+        let mut dialog = Dialog::<Feedback>::new(String::from(USER_ID));
+        dialog
+            .handle_current_step(&telegram_client, USER_ID, "")
+            .await
+            .unwrap();
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn handle_current_step_success_input() {
+        let url = &server_url();
+        let message_text = format!("Thanks, {}, for you priceless feedback!", USER_ID);
+        let feedback_response_message = Message {
+            chat_id: USER_ID,
+            text: message_text.as_str(),
+            ..Default::default()
+        };
+        let mock = mock_send_message_success(TOKEN, &feedback_response_message);
+
+        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
+        let mut dialog = Dialog::<Feedback>::new_with(String::from(USER_ID), Feedback::Input);
+        dialog
+            .handle_current_step(&telegram_client, USER_ID, "")
+            .await
+            .unwrap();
+
+        mock.assert();
     }
 }

@@ -1,4 +1,4 @@
-use crate::bot::dialogs::{Dialog, Feedback};
+use crate::bot::dialogs::{Dialog, Feedback, Start};
 use crate::bot::error::BotError;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
@@ -16,14 +16,13 @@ Or you can also send feedback via /feedback command.
 "#;
 
 pub async fn start(telegram_client: &TelegramClient, user_id: &str) -> Result<(), BotError> {
-    telegram_client
-        .send_message(&Message {
-            chat_id: user_id,
-            text: HELP_TEXT,
-            ..Default::default()
-        })
-        .await?;
-    Ok(())
+    match Dialog::<Start>::new(user_id.to_string())
+        .handle_current_step(&telegram_client, user_id, "")
+        .await
+    {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
 }
 
 pub async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<(), BotError> {
