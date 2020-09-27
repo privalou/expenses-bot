@@ -31,7 +31,6 @@ impl TelegramClient {
     ) -> Result<String, TelegramError> {
         let url = format!("{}/bot{}/sendMessage", self.domain, self.token);
         let resp: Response = Client::new().post(&url).json(message).send().await?;
-        println!("{}", resp.status());
         if resp.status().is_success() {
             let resp: Value = from_str(&resp.text().await?)?;
             let resp = &resp["result"];
