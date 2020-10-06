@@ -3,6 +3,7 @@ use log::{error, info, warn};
 use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
 
 use crate::bot::commands::{feedback, help, send_now, start, stop};
+use crate::bot::dialogs::{Dialog, Start};
 use crate::bot::error::BotError;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
@@ -119,13 +120,20 @@ async fn handle_message(
         "/sendnow" => send_now(&telegram_client, &user_id).await?,
         "/help" => help(&telegram_client, &user_id).await?,
         _ => {
-            telegram_client
-                .send_message(&Message {
-                    chat_id: &user_id,
-                    text: "I didn't get that. Use /help to see list of available commands.",
-                    ..Default::default()
-                })
-                .await?;
+            if payload == "₽" || payload == "€" || payload == "$" {
+                let mut dialog = Dialog::<Start>::currency(user_id.to_string());
+                dialog
+                    .handle_current_step(&telegram_client, &user_id, &payload)
+                    .await?;
+            } else {
+                telegram_client
+                    .send_message(&Message {
+                        chat_id: &user_id,
+                        text: "I didn't get that. Use /help to see list of available commands.",
+                        ..Default::default()
+                    })
+                    .await?;
+            }
         }
     }
     Ok(())

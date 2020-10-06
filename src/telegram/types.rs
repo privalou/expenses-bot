@@ -21,11 +21,23 @@ pub struct EditMessage<'a> {
     pub reply_markup: Option<&'a ReplyMarkup>,
 }
 
-#[allow(dead_code)]
 #[derive(Serialize)]
 #[serde(untagged)]
+#[allow(dead_code)]
 pub enum ReplyMarkup {
     InlineKeyboardMarkup(InlineKeyboardMarkup),
+}
+
+#[derive(Serialize, Default, Clone)]
+pub struct InlineKeyboardButton {
+    pub text: String,
+    pub callback_data: String,
+}
+
+#[allow(dead_code)]
+#[derive(Serialize, Default)]
+pub struct InlineKeyboardMarkup {
+    pub inline_keyboard: Vec<Vec<InlineKeyboardButton>>,
 }
 
 #[derive(Serialize, Default)]
@@ -48,15 +60,4 @@ pub struct EditImage<'a> {
 pub struct Media<'a> {
     #[serde(rename = "type")]
     pub type_: &'a str,
-}
-
-#[derive(Serialize, Default, Clone)]
-pub struct InlineKeyboardButton {
-    pub text: String,
-    pub callback_data: String,
-}
-
-#[derive(Serialize, Default)]
-pub struct InlineKeyboardMarkup {
-    pub inline_keyboard: Vec<Vec<InlineKeyboardButton>>,
 }

@@ -4,10 +4,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub use self::feedback::Feedback;
+pub use self::start::Start;
 use crate::bot::dialogs::entity::DialogEntity;
 
 mod entity;
 mod feedback;
+mod start;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dialog<T>
