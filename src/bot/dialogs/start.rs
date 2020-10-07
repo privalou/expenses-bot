@@ -25,11 +25,11 @@ impl Dialog<Start> {
         }
     }
 
-    pub fn currency(user_id: String) -> Self {
+    pub fn new_with(user_id: String, current_step: Start) -> Self {
         Dialog {
             command: "/start".to_string(),
             user_id,
-            current_step: Start::Currency,
+            current_step,
             data: HashMap::new(),
         }
     }

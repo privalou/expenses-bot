@@ -280,7 +280,7 @@ mod tests {
     async fn edit_message_text_success() {
         let url = &server_url();
         let inline_keyboard = vec![vec![InlineKeyboardButton {
-            text: "test".to_string(),
+            text: "tests".to_string(),
             callback_data: "callback_data".to_string(),
         }]];
         let markup = InlineKeyboardMarkup { inline_keyboard };
@@ -313,7 +313,7 @@ mod tests {
         let url = &server_url();
         let error = r#"{"ok":false,"error_code":400,"description":"Bad Request: chat not found"}"#;
         let inline_keyboard = vec![vec![InlineKeyboardButton {
-            text: "test".to_string(),
+            text: "tests".to_string(),
             callback_data: "callback_data".to_string(),
         }]];
         let markup = InlineKeyboardMarkup { inline_keyboard };
