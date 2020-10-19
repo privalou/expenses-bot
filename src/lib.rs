@@ -1,7 +1,7 @@
 use crate::bot::api::init_bot;
 use crate::bot::error::BotError;
 
-mod bot;
+pub mod bot;
 mod log;
 pub mod telegram;
 

@@ -43,7 +43,7 @@ pub async fn init_bot(token: &str, author_id: &str) {
     }
 }
 
-async fn handle_message(
+pub async fn handle_message(
     telegram_client: &TelegramClient,
     author_id: &str,
     payload: String,
@@ -83,12 +83,4 @@ async fn handle_message(
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[tokio::test]
-    async fn handle_message_test() {
-        assert_eq!(1, 1);
-    }
 }
