@@ -12,6 +12,7 @@ async fn integration_test_handle_message_start_flow() {
     let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
     let user_id =
         env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+
     handle_message(
         &telegram_client,
         author_id.as_str(),
@@ -19,7 +20,7 @@ async fn integration_test_handle_message_start_flow() {
         user_id.clone(),
     )
     .await
-    .unwrap();
+    .expect("something bad happened");
     handle_message(
         &telegram_client,
         author_id.as_str(),
@@ -39,6 +40,7 @@ async fn integration_test_handle_message_feedback_flow() {
     let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
     let user_id =
         env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+
     handle_message(
         &telegram_client,
         author_id.as_str(),
@@ -66,6 +68,7 @@ async fn integration_test_handle_message_help_flow() {
     let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
     let user_id =
         env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+
     handle_message(
         &telegram_client,
         author_id.as_str(),
@@ -85,6 +88,7 @@ async fn integration_test_handle_message_sendnow_flow() {
     let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
     let user_id =
         env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+
     handle_message(
         &telegram_client,
         author_id.as_str(),
