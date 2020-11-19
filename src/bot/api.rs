@@ -59,7 +59,10 @@ pub async fn handle_message(
         "/sendnow" => send_now(&telegram_client, &user_id).await?,
         "/help" => help(&telegram_client, &user_id).await?,
         _ => {
-            //TODO: WTF REMOVE THIS SHIT
+            //TODO: finish
+            // if let Ok(dialog) = service_container.dialog.get_user_dialog(&user_id).await {
+            //     println!("{}", dialog);
+            // }
             if payload.starts_with("/feedback") {
                 let mut dialog = Dialog::<Feedback>::new_with(user_id.clone(), Feedback::Input);
                 dialog
