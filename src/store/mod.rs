@@ -191,7 +191,10 @@ mod tests {
     fn updating_nothing_leaves_the_updatable_fields_unchanged() {
         let mut store = AppStore::new();
         let start_dialog = generate_start_dialog("user_id".to_string());
-        assert_eq!(None, store.save(start_dialog.clone(), "user_id".to_string()));
+        assert_eq!(
+            None,
+            store.save(start_dialog.clone(), "user_id".to_string())
+        );
 
         let patch = DialogPatch {
             command: None,
