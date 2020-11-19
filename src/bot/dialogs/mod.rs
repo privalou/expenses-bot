@@ -5,7 +5,7 @@ use serde::Serialize;
 
 pub use self::feedback::Feedback;
 pub use self::start::Start;
-use crate::store::DialogEntity;
+use crate::store::simple_store::DialogEntity;
 
 mod feedback;
 mod start;
