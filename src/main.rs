@@ -11,9 +11,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::logger::init_logger().expect("Can not run logging!");
 
     let token = env::var("TELEGRAM_BOT_TOKEN").expect("Missing TELEGRAM_BOT_TOKEN env var");
-    let author_id = env::var("TELEGRAM_AUTHOR").expect("Missing TELEGRAM_AUTHOR env var");
 
-    start(token, author_id).await?;
+    start(token).await?;
 
     Ok(())
 }

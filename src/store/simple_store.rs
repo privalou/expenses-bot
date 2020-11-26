@@ -3,7 +3,27 @@ use std::error::Error;
 
 #[allow(dead_code)]
 pub struct AppStore {
-    data: HashMap<String, DialogEntity>,
+    data: HashMap<String, UserData>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UserData {
+    user_id: String,
+    current_dialog: DialogEntity,
+    // todo: change to enum
+    currency: Option<String>,
+    history: History,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct History {
+    data: HashMap<String, f32>,
+}
+
+impl Default for AppStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[allow(dead_code)]
@@ -15,38 +35,50 @@ impl AppStore {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn update(&mut self, id: &str, patch: DialogPatch) -> Option<&DialogEntity> {
-        if let Some(dialog) = self.data.get_mut(id) {
-            if let Some(command) = patch.command {
-                dialog.command = command;
-            }
-            if let Some(step) = patch.step {
-                dialog.step = step;
-            }
-            if let Some(data) = patch.data {
-                dialog.data = data;
-            }
-            Some(dialog)
-        } else {
-            None
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn save(&mut self, user_dialog: DialogEntity, id: &str) -> Option<String> {
-        match self.data.insert(id.to_string(), user_dialog) {
+    pub fn save_user(&mut self, id: &str) -> Option<String> {
+        match self.data.insert(
+            id.to_string(),
+            UserData::new(id.to_string()).expect("Invalid user id"),
+        ) {
             Some(value) => Some(value.user_id),
             None => None,
         }
     }
 
-    #[allow(dead_code)]
-    pub fn get(&self, id: &str) -> Option<&DialogEntity> {
-        self.data.get(id)
+    pub fn update_dialog(&mut self, patch: DialogPatch, id: &str) -> Option<&DialogEntity> {
+        if let Some(user_data) = self.data.get_mut(id) {
+            if let Some(command) = patch.command {
+                user_data.current_dialog.command = command;
+            }
+            if let Some(step) = patch.step {
+                user_data.current_dialog.step = step;
+            }
+            if let Some(data) = patch.data {
+                user_data.current_dialog.data = data;
+            }
+            Some(&user_data.current_dialog)
+        } else {
+            None
+        }
     }
 
-    pub fn delete(&mut self, id: &str) -> Option<()> {
+    pub fn get_user_dialog(&self, id: &str) -> Option<&DialogEntity> {
+        if let Some(user_data) = self.data.get(id) {
+            Some(&user_data.current_dialog)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_user_data(&self, id: &str) -> Option<&UserData> {
+        if let Some(user_data) = self.data.get(id) {
+            Some(&user_data)
+        } else {
+            None
+        }
+    }
+
+    fn delete(&mut self, id: &str) -> Option<()> {
         if self.data.remove(id).is_some() {
             Some(())
         } else {
@@ -55,11 +87,32 @@ impl AppStore {
     }
 }
 
-/// This struct is an emulation of the db entity
-/// Should be reworked with types
+impl UserData {
+    pub fn new(user_id: String) -> Result<UserData, ValidationError> {
+        if user_id.is_empty() {
+            return Err(ValidationError("User id can not be empty".to_string()));
+        }
+
+        Ok(UserData {
+            user_id,
+            current_dialog: DialogEntity::new(),
+            currency: None,
+            history: History::new(),
+        })
+    }
+}
+
+impl History {
+    pub fn new() -> History {
+        History {
+            data: HashMap::new(),
+        }
+    }
+}
+
+/// todo: This struct is an emulation of the db entity. Should be reworked with types
 #[derive(Debug, Clone, PartialEq)]
 pub struct DialogEntity {
-    pub user_id: String,
     pub command: String,
     pub step: String,
     pub data: String,
@@ -72,10 +125,13 @@ pub struct DialogPatch {
     pub data: Option<String>,
 }
 
-impl DialogEntity {
-    pub fn user_id(&self) -> &String {
-        &self.user_id
+impl Default for DialogEntity {
+    fn default() -> Self {
+        Self::new()
     }
+}
+
+impl DialogEntity {
     pub fn command(&self) -> &String {
         &self.command
     }
@@ -86,37 +142,42 @@ impl DialogEntity {
         &self.data
     }
 
-    pub fn new(user_id: String) -> Result<DialogEntity, ValidationError> {
-        if user_id.is_empty() {
-            return Err(ValidationError("User id can not be empty".to_string()));
-        }
-        Ok(DialogEntity {
-            user_id,
+    pub fn new() -> DialogEntity {
+        DialogEntity {
             command: "/start".to_string(),
             step: "Step::FirstStep".to_string(),
-            data: "".to_string(),
-        })
+            data: "{}".to_string(),
+        }
     }
 
     pub fn new_with(
-        user_id: String,
         command: String,
         step: String,
         data: String,
     ) -> Result<DialogEntity, ValidationError> {
-        if user_id.is_empty() {
-            return Err(ValidationError("User id can not be empty".to_string()));
-        }
         if command.is_empty() {
             return Err(ValidationError("Command can not be empty".to_string()));
         }
 
         Ok(DialogEntity {
-            user_id,
             command,
             step,
             data,
         })
+    }
+}
+
+impl DialogPatch {
+    pub fn new_with(
+        command: Option<String>,
+        step: Option<String>,
+        data: Option<String>,
+    ) -> DialogPatch {
+        DialogPatch {
+            command,
+            step,
+            data,
+        }
     }
 }
 
@@ -133,24 +194,19 @@ impl std::fmt::Display for ValidationError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use fake::{Fake, Faker};
+
+    use super::*;
 
     #[test]
     fn user_id_cannot_be_empty() {
-        let dialog = DialogEntity::new_with(
-            "".to_string(),
-            "/start".to_string(),
-            "Step::FirstStep".to_string(),
-            "".to_string(),
-        );
-        assert!(dialog.is_err())
+        let user_data = UserData::new("".to_string());
+        assert!(user_data.is_err())
     }
 
     #[test]
     fn command_cannot_be_empty() {
         let dialog = DialogEntity::new_with(
-            "foo".to_string(),
             "".to_string(),
             "Step::FirstStep".to_string(),
             "".to_string(),
@@ -159,18 +215,23 @@ mod tests {
     }
 
     #[test]
-    fn dialog_is_saved_at_store() {
-        let dialog = generate_start_dialog("user_id".to_string());
+    fn user_data_is_saved_at_store() {
         let mut store = AppStore::new();
 
-        assert!(store.save(dialog.clone(), &dialog.user_id).is_none());
-        let retrieved_ticket = store
-            .get(&"user_id".to_string())
+        assert!(store.save_user("user_id").is_none());
+        let retrieved_user_data = store
+            .get_user_data("user_id")
             .expect("There is no such user");
-        assert_eq!(retrieved_ticket.user_id, dialog.user_id);
-        assert_eq!(retrieved_ticket.command, dialog.command);
-        assert_eq!(retrieved_ticket.data, dialog.data);
-        assert_eq!(retrieved_ticket.step, dialog.step);
+        assert_eq!(retrieved_user_data.user_id, "user_id".to_string());
+        assert!(retrieved_user_data.currency.is_none());
+        assert_eq!(
+            retrieved_user_data.current_dialog.command,
+            "/start".to_string()
+        );
+        assert_eq!(
+            retrieved_user_data.current_dialog.step,
+            "Step::FirstStep".to_string()
+        );
     }
 
     #[test]
@@ -178,24 +239,22 @@ mod tests {
         let store = AppStore::new();
         let user_id = Faker.fake::<String>();
 
-        assert_eq!(store.get(&user_id), None);
+        assert!(store.get_user_data(&user_id).is_none());
     }
 
     #[test]
     fn delete_works() {
         let mut store = AppStore::new();
-        let dialog = generate_start_dialog("user_id".to_string());
-        store.save(dialog.clone(), "user_id");
+        assert!(store.save_user("user_id").is_none());
 
-        assert_eq!((), store.delete(&dialog.user_id).unwrap());
-        assert_eq!(store.get(&dialog.user_id), None);
+        assert_eq!((), store.delete("user_id").unwrap());
+        assert_eq!(store.get_user_dialog("user_id"), None);
     }
 
     #[test]
     fn updating_nothing_leaves_the_updatable_fields_unchanged() {
         let mut store = AppStore::new();
-        let start_dialog = generate_start_dialog("user_id".to_string());
-        assert_eq!(None, store.save(start_dialog.clone(), "user_id"));
+        assert_eq!(None, store.save_user("user_id"));
 
         let patch = DialogPatch {
             command: None,
@@ -203,12 +262,11 @@ mod tests {
             data: None,
         };
 
-        let updated_dialog = store.update(&start_dialog.user_id, patch).unwrap();
+        let updated_dialog = store.update_dialog(patch, "user_id").unwrap();
 
-        assert_eq!(start_dialog.user_id, updated_dialog.user_id);
-        assert_eq!(start_dialog.step, updated_dialog.step);
-        assert_eq!(start_dialog.data, updated_dialog.data);
-        assert_eq!(start_dialog.command, updated_dialog.command);
+        assert_eq!("Step::FirstStep", updated_dialog.step);
+        assert_eq!("{}", updated_dialog.data);
+        assert_eq!("/start", updated_dialog.command);
     }
 
     #[test]
@@ -216,9 +274,5 @@ mod tests {
         let mut store = AppStore::new();
         let deleted_user = store.delete(&Faker.fake::<String>());
         assert_eq!(None, deleted_user)
-    }
-
-    fn generate_start_dialog(user_id: String) -> DialogEntity {
-        DialogEntity::new(user_id).expect("Wrong user id")
     }
 }

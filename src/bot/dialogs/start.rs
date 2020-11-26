@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
+use crate::store::simple_store::AppStore;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 
@@ -12,23 +14,27 @@ use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message
 pub enum Start {
     FirstStep,
     Currency,
-    End,
+    LastStep,
+}
+
+impl Default for Dialog<Start> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Dialog<Start> {
-    pub fn new(user_id: String) -> Self {
+    pub fn new() -> Self {
         Dialog {
             command: "/start".to_string(),
-            user_id,
             current_step: Start::FirstStep,
             data: HashMap::new(),
         }
     }
 
-    pub fn new_with(user_id: String, current_step: Start) -> Self {
+    pub fn new_with(current_step: Start) -> Self {
         Dialog {
             command: "/start".to_string(),
-            user_id,
             current_step,
             data: HashMap::new(),
         }
@@ -36,15 +42,17 @@ impl Dialog<Start> {
 
     pub async fn handle_current_step(
         &mut self,
+        store: &mut AppStore,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,
     ) -> Result<(), BotError> {
-        self.data.insert(self.current_step, payload.to_string());
+        info!("Received {} payload from user {}", payload, user_id);
 
         match self.current_step {
             Start::FirstStep => {
                 self.current_step = Start::Currency;
+                store.update_dialog(self.clone().into(), &user_id);
                 let inline_keyboard = vec![vec![
                     InlineKeyboardButton {
                         text: "₽".to_string(),
@@ -71,7 +79,7 @@ impl Dialog<Start> {
                     .await?;
             }
             Start::Currency => {
-                self.current_step = Start::End;
+                self.current_step = Start::LastStep;
                 info!(
                     "received response at Currency step {}",
                     self.data
@@ -86,7 +94,7 @@ impl Dialog<Start> {
                     })
                     .await?;
             }
-            Start::End => info!("fook"),
+            Start::LastStep => info!("fook"),
         }
         Ok(())
     }
