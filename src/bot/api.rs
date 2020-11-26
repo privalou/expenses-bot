@@ -81,13 +81,13 @@ async fn handle_not_a_command_message(
     if let Some(dialog_from_store) = store.get(user_id) {
         match dialog_from_store.command.as_str() {
             "/start" => {
-                let mut dialog: Dialog<Start> = Dialog::from(dialog_from_store).into();
+                let mut dialog: Dialog<Start> = Dialog::from(dialog_from_store);
                 dialog
                     .handle_current_step(store, telegram_client, user_id, payload)
                     .await?
             }
             "/feedback" => {
-                let mut dialog: Dialog<Feedback> = Dialog::from(dialog_from_store).into();
+                let mut dialog: Dialog<Feedback> = Dialog::from(dialog_from_store);
                 dialog
                     .handle_current_step(store, telegram_client, user_id, payload)
                     .await?

@@ -6,6 +6,12 @@ pub struct AppStore {
     data: HashMap<String, DialogEntity>,
 }
 
+impl Default for AppStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(dead_code)]
 impl AppStore {
     #[allow(dead_code)]
@@ -41,7 +47,6 @@ impl AppStore {
         }
     }
 
-    #[allow(dead_code)]
     pub fn get(&self, id: &str) -> Option<&DialogEntity> {
         self.data.get(id)
     }

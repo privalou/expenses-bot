@@ -36,7 +36,7 @@ where
     }
 }
 
-// todo: idk how stupid it is
+// idk how stupid it is
 impl<T> From<&DialogEntity> for Dialog<T>
 where
     T: std::hash::Hash + std::cmp::Eq + DeserializeOwned + std::str::FromStr,
