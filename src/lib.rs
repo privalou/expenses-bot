@@ -3,7 +3,7 @@ use crate::bot::error::BotError;
 
 pub mod bot;
 mod log;
-mod store;
+pub mod store;
 pub mod telegram;
 
 pub async fn start(tg_token: String, author_id: String) -> Result<(), BotError> {

@@ -36,6 +36,23 @@ where
     }
 }
 
+// todo: idk how stupid it is
+impl<T> From<&DialogEntity> for Dialog<T>
+where
+    T: std::hash::Hash + std::cmp::Eq + DeserializeOwned + std::str::FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Debug,
+{
+    fn from(dialog: &DialogEntity) -> Self {
+        let dialog = dialog.clone();
+        Dialog {
+            user_id: dialog.user_id,
+            command: dialog.command,
+            current_step: T::from_str(&dialog.step).unwrap(),
+            data: serde_json::from_str(&dialog.data).unwrap(),
+        }
+    }
+}
+
 impl<T> Into<DialogEntity> for Dialog<T>
 where
     T: std::hash::Hash + std::cmp::Eq + Serialize + std::string::ToString,

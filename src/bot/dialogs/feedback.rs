@@ -1,12 +1,13 @@
-use log::info;
 use std::collections::HashMap;
 
+use log::info;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 use strum_macros::EnumString;
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
+use crate::store::simple_store::AppStore;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -44,6 +45,7 @@ impl Dialog<Feedback> {
 
     pub async fn handle_current_step(
         &mut self,
+        store: &mut AppStore,
         telegram_client: &TelegramClient,
         author_id: &str,
         payload: &str,
@@ -53,7 +55,7 @@ impl Dialog<Feedback> {
         match self.current_step {
             Feedback::Start => {
                 self.current_step = Feedback::Input;
-
+                store.save(self.clone().into(), &author_id);
                 telegram_client
                     .send_message(&Message {
                         chat_id: &self.user_id,
@@ -65,6 +67,7 @@ impl Dialog<Feedback> {
             Feedback::Input => {
                 let input = self.data.get(&Feedback::Input).unwrap();
                 info!("received feedback from user({}): {}", &self.user_id, input);
+                store.save(self.clone().into(), &author_id);
 
                 telegram_client
                     .send_message(&Message {
@@ -81,9 +84,12 @@ impl Dialog<Feedback> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::telegram::test_helpers::mock_send_message_success;
     use mockito::server_url;
+
+    use crate::store::simple_store::AppStore;
+    use crate::telegram::test_helpers::mock_send_message_success;
+
+    use super::*;
 
     const TOKEN: &str = "token";
     const USER_ID: &str = "123";
@@ -93,8 +99,10 @@ You can write your feedback. If you want the author to get back to you, leave yo
 Or you can contact the author via telegram: @privalou
 Übermensch appoach is creating issue at https://github.com/privalou/expenses-bot
 "#;
+
     #[tokio::test]
     async fn handle_current_step_success_start() {
+        let mut store = AppStore::new();
         let url = &server_url();
         let feedback_command_message = Message {
             chat_id: USER_ID,
@@ -106,7 +114,7 @@ Or you can contact the author via telegram: @privalou
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
         let mut dialog = Dialog::<Feedback>::new(String::from(USER_ID));
         dialog
-            .handle_current_step(&telegram_client, USER_ID, "")
+            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
             .await
             .unwrap();
 
@@ -115,6 +123,8 @@ Or you can contact the author via telegram: @privalou
 
     #[tokio::test]
     async fn handle_current_step_success_input() {
+        let mut store = AppStore::new();
+
         let url = &server_url();
         let message_text = format!("Thanks, {}, for you priceless feedback!", USER_ID);
         let feedback_response_message = Message {
@@ -127,7 +137,7 @@ Or you can contact the author via telegram: @privalou
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
         let mut dialog = Dialog::<Feedback>::new_with(String::from(USER_ID), Feedback::Input);
         dialog
-            .handle_current_step(&telegram_client, USER_ID, "")
+            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
             .await
             .unwrap();
 

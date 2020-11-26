@@ -1,5 +1,6 @@
 use crate::bot::dialogs::{Dialog, Feedback, Start};
 use crate::bot::error::BotError;
+use crate::store::simple_store::AppStore;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -15,9 +16,13 @@ If you encounter any issues feel free to open an issue.
 Or you can also send feedback via /feedback command.
 "#;
 
-pub async fn start(telegram_client: &TelegramClient, user_id: &str) -> Result<(), BotError> {
+pub async fn start(
+    store: &mut AppStore,
+    telegram_client: &TelegramClient,
+    user_id: &str,
+) -> Result<(), BotError> {
     match Dialog::<Start>::new(user_id.to_string())
-        .handle_current_step(&telegram_client, user_id, "")
+        .handle_current_step(store, &telegram_client, user_id, "")
         .await
     {
         Ok(_) => Ok(()),
@@ -38,12 +43,13 @@ pub async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<(),
 }
 
 pub async fn feedback(
+    store: &mut AppStore,
     telegram_client: &TelegramClient,
     author_id: &str,
     user_id: &str,
 ) -> Result<(), BotError> {
     Dialog::<Feedback>::new(user_id.to_string())
-        .handle_current_step(&telegram_client, author_id, "")
+        .handle_current_step(store, &telegram_client, author_id, "")
         .await?;
 
     Ok(())
@@ -76,7 +82,6 @@ pub async fn help(telegram_client: &TelegramClient, user_id: &str) -> Result<(),
 #[cfg(test)]
 mod tests {
     use mockito::server_url;
-    use serial_test::serial;
 
     use crate::telegram::test_helpers::mock_send_message_success;
 
@@ -92,8 +97,9 @@ Or you can contact the author via telegram: @privalou
 "#;
 
     #[tokio::test]
-    #[serial]
     async fn feedback_success() {
+        let mut store = AppStore::new();
+
         let url = &server_url();
         let message = Message {
             chat_id: USER_ID,
@@ -103,13 +109,14 @@ Or you can contact the author via telegram: @privalou
         let _m = mock_send_message_success(TOKEN, &message);
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        feedback(&telegram_client, "", USER_ID).await.unwrap();
+        feedback(&mut store, &telegram_client, "", USER_ID)
+            .await
+            .unwrap();
 
         _m.assert();
     }
 
     #[tokio::test]
-    #[serial]
     async fn send_now_success() {
         let url = &server_url();
         let message = Message {
@@ -125,7 +132,6 @@ Or you can contact the author via telegram: @privalou
     }
 
     #[tokio::test]
-    #[serial]
     async fn help_success() {
         let url = &server_url();
         let message = Message {

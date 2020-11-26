@@ -5,6 +5,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
+use crate::store::simple_store::AppStore;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 
@@ -12,7 +13,7 @@ use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message
 pub enum Start {
     FirstStep,
     Currency,
-    End,
+    LastStep,
 }
 
 impl Dialog<Start> {
@@ -36,15 +37,17 @@ impl Dialog<Start> {
 
     pub async fn handle_current_step(
         &mut self,
+        store: &mut AppStore,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,
     ) -> Result<(), BotError> {
-        self.data.insert(self.current_step, payload.to_string());
+        info!("Received {} payload from user {}", payload, user_id);
 
         match self.current_step {
             Start::FirstStep => {
                 self.current_step = Start::Currency;
+                store.save(self.clone().into(), &user_id);
                 let inline_keyboard = vec![vec![
                     InlineKeyboardButton {
                         text: "₽".to_string(),
@@ -71,7 +74,7 @@ impl Dialog<Start> {
                     .await?;
             }
             Start::Currency => {
-                self.current_step = Start::End;
+                self.current_step = Start::LastStep;
                 info!(
                     "received response at Currency step {}",
                     self.data
@@ -86,7 +89,7 @@ impl Dialog<Start> {
                     })
                     .await?;
             }
-            Start::End => info!("fook"),
+            Start::LastStep => info!("fook"),
         }
         Ok(())
     }
