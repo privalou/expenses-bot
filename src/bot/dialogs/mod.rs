@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+
+use crate::store::simple_store::DialogEntity;
 
 pub use self::feedback::Feedback;
 pub use self::start::Start;
-use crate::store::simple_store::{DialogEntity, DialogPatch};
+use serde::Serialize;
 
 mod feedback;
 mod start;
@@ -16,8 +15,7 @@ where
     T: std::hash::Hash + std::cmp::Eq,
 {
     pub command: String,
-    pub current_step: T,
-    pub data: HashMap<T, String>,
+    pub current_step: Option<T>,
 }
 
 impl<T> From<DialogEntity> for Dialog<T>
@@ -26,38 +24,16 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Debug,
 {
     fn from(dialog: DialogEntity) -> Self {
+        let current_step = match &dialog.step {
+            Some(value) => match T::from_str(value) {
+                Ok(value) => Some(value),
+                Err(_) => None,
+            },
+            None => None,
+        };
         Dialog {
             command: dialog.command,
-            current_step: T::from_str(&dialog.step).unwrap(),
-            data: serde_json::from_str(&dialog.data).unwrap(),
-        }
-    }
-}
-
-impl<T> Into<DialogPatch> for Dialog<T>
-where
-    T: std::hash::Hash + std::cmp::Eq + Serialize + std::string::ToString,
-{
-    fn into(self) -> DialogPatch {
-        let command = match self.command.is_empty() {
-            true => None,
-            false => Some(self.command),
-        };
-
-        let step = match self.current_step.to_string().is_empty() {
-            true => None,
-            false => Some(self.current_step.to_string()),
-        };
-
-        let data = match self.data.is_empty() {
-            true => None,
-            false => Some(serde_json::to_string(&self.data).expect("Can not convert to data")),
-        };
-
-        DialogPatch {
-            command,
-            step,
-            data,
+            current_step,
         }
     }
 }
@@ -69,12 +45,16 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Debug,
 {
     fn from(dialog: &DialogEntity) -> Self {
-        let dialog = dialog.clone();
+        let current_step = match &dialog.step {
+            Some(value) => match T::from_str(value) {
+                Ok(value) => Some(value),
+                Err(_) => None,
+            },
+            None => None,
+        };
         Dialog {
             command: dialog.command.to_string(),
-            current_step: T::from_str(&dialog.step).expect("Can not convert to step"),
-            data: serde_json::from_str(&dialog.data)
-                .unwrap_or_else(|_| panic!("Can not convert to data: {}", &dialog.data)),
+            current_step,
         }
     }
 }
@@ -84,10 +64,14 @@ where
     T: std::hash::Hash + std::cmp::Eq + Serialize + std::string::ToString,
 {
     fn into(self) -> DialogEntity {
+        let step = match self.current_step {
+            None => None,
+            Some(value) => Some(value.to_string()),
+        };
+
         DialogEntity {
-            command: self.command.clone(),
-            step: self.current_step.to_string(),
-            data: serde_json::to_string(&self.data).expect("Can not convert to data"),
+            command: self.command,
+            step,
         }
     }
 }
@@ -106,25 +90,20 @@ mod tests {
             command,
             DialogEntity {
                 command: "/start".to_string(),
-                step: "FirstStep".to_string(),
-                data: "{}".to_string(),
+                step: None,
             }
         );
         let mut dialog_converted: Dialog<Start> = command.into();
         assert_eq!(dialog_converted, dialog);
 
-        dialog_converted
-            .data
-            .insert(Start::FirstStep, "payload".to_string());
-        dialog_converted.current_step = Start::Currency;
+        dialog_converted.current_step = Some(Start::CurrencySelection);
         let command_converted: DialogEntity = (dialog_converted.clone()).into();
 
         assert_eq!(
             command_converted,
             DialogEntity {
                 command: "/start".to_string(),
-                step: "Currency".to_string(),
-                data: r#"{"FirstStep":"payload"}"#.to_string(),
+                step: Some("CurrencySelection".to_string()),
             }
         )
     }
