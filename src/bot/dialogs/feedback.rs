@@ -24,20 +24,18 @@ pub enum Feedback {
 }
 
 impl Dialog<Feedback> {
-    pub fn new(user_id: String) -> Self {
+    pub fn new() -> Self {
         Dialog {
             command: "/feedback".to_string(),
-            user_id,
             current_step: Feedback::Start,
             data: HashMap::new(),
         }
     }
 
     #[allow(dead_code)]
-    pub fn new_with(user_id: String, current_step: Feedback) -> Self {
+    pub fn new_with(current_step: Feedback) -> Self {
         Dialog {
             command: "/feedback".to_string(),
-            user_id,
             current_step,
             data: HashMap::new(),
         }
@@ -47,7 +45,7 @@ impl Dialog<Feedback> {
         &mut self,
         store: &mut AppStore,
         telegram_client: &TelegramClient,
-        author_id: &str,
+        user_id: &str,
         payload: &str,
     ) -> Result<(), BotError> {
         self.data.insert(self.current_step, payload.to_string());
@@ -55,10 +53,10 @@ impl Dialog<Feedback> {
         match self.current_step {
             Feedback::Start => {
                 self.current_step = Feedback::Input;
-                store.save(self.clone().into(), &author_id);
+                store.update_dialog(self.clone().into(), &user_id);
                 telegram_client
                     .send_message(&Message {
-                        chat_id: &self.user_id,
+                        chat_id: &user_id,
                         text: FEEDBACK_TEXT,
                         ..Default::default()
                     })
@@ -66,13 +64,13 @@ impl Dialog<Feedback> {
             }
             Feedback::Input => {
                 let input = self.data.get(&Feedback::Input).unwrap();
-                info!("received feedback from user({}): {}", &self.user_id, input);
-                store.save(self.clone().into(), &author_id);
+                info!("received feedback from user({}): {}", &user_id, input);
+                store.update_dialog(self.clone().into(), &user_id);
 
                 telegram_client
                     .send_message(&Message {
-                        chat_id: author_id,
-                        text: &format!("Thanks, {}, for you priceless feedback!", &self.user_id),
+                        chat_id: user_id,
+                        text: &format!("Thanks, {}, for you priceless feedback!", &user_id),
                         ..Default::default()
                     })
                     .await?;
@@ -112,11 +110,14 @@ Or you can contact the author via telegram: @privalou
         let mock = mock_send_message_success(TOKEN, &feedback_command_message);
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
-        let mut dialog = Dialog::<Feedback>::new(String::from(USER_ID));
-        dialog
-            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
-            .await
-            .unwrap();
+        let mut dialog = Dialog::<Feedback>::new();
+        assert_eq!(
+            dialog
+                .handle_current_step(&mut store, &telegram_client, USER_ID, "")
+                .await
+                .expect("Can not process feedback step"),
+            ()
+        );
 
         mock.assert();
     }
@@ -135,11 +136,14 @@ Or you can contact the author via telegram: @privalou
         let mock = mock_send_message_success(TOKEN, &feedback_response_message);
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
-        let mut dialog = Dialog::<Feedback>::new_with(String::from(USER_ID), Feedback::Input);
-        dialog
-            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
-            .await
-            .unwrap();
+        let mut dialog = Dialog::<Feedback>::new_with(Feedback::Input);
+        assert_eq!(
+            dialog
+                .handle_current_step(&mut store, &telegram_client, USER_ID, "")
+                .await
+                .expect("Can not process feedback step"),
+            ()
+        );
 
         mock.assert();
     }

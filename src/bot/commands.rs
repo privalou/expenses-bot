@@ -8,7 +8,6 @@ const HELP_TEXT: &str = r#"
 You can send me these commands:
 /start
 /stop
-/sendnow
 /feedback
 /help
 
@@ -21,7 +20,7 @@ pub async fn start(
     telegram_client: &TelegramClient,
     user_id: &str,
 ) -> Result<(), BotError> {
-    match Dialog::<Start>::new(user_id.to_string())
+    match Dialog::<Start>::new()
         .handle_current_step(store, &telegram_client, user_id, "")
         .await
     {
@@ -45,23 +44,10 @@ pub async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<(),
 pub async fn feedback(
     store: &mut AppStore,
     telegram_client: &TelegramClient,
-    author_id: &str,
     user_id: &str,
 ) -> Result<(), BotError> {
-    Dialog::<Feedback>::new(user_id.to_string())
-        .handle_current_step(store, &telegram_client, author_id, "")
-        .await?;
-
-    Ok(())
-}
-
-pub async fn send_now(telegram_client: &TelegramClient, user_id: &str) -> Result<(), BotError> {
-    telegram_client
-        .send_message(&Message {
-            chat_id: user_id,
-            text: "You haven't start using app. Start using /start command.",
-            ..Default::default()
-        })
+    Dialog::<Feedback>::new()
+        .handle_current_step(store, &telegram_client, user_id, "")
         .await?;
 
     Ok(())
@@ -109,26 +95,11 @@ Or you can contact the author via telegram: @privalou
         let _m = mock_send_message_success(TOKEN, &message);
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        feedback(&mut store, &telegram_client, "", USER_ID)
+        feedback(&mut store, &telegram_client, USER_ID)
             .await
             .unwrap();
 
         _m.assert();
-    }
-
-    #[tokio::test]
-    async fn send_now_success() {
-        let url = &server_url();
-        let message = Message {
-            chat_id: USER_ID,
-            text: "You haven't start using app. Start using /start command.",
-            ..Default::default()
-        };
-        let _m1 = mock_send_message_success(TOKEN, &message);
-        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
-
-        send_now(&telegram_client, USER_ID).await.unwrap();
-        _m1.assert();
     }
 
     #[tokio::test]

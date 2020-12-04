@@ -2,7 +2,7 @@ use futures::StreamExt;
 use log::{error, info};
 use telegram_bot::{Api, MessageKind, UpdateKind};
 
-use crate::bot::commands::{feedback, help, send_now, start, stop};
+use crate::bot::commands::{feedback, help, start, stop};
 use crate::bot::dialogs::{Dialog, Feedback, Start};
 use crate::bot::error::BotError;
 use crate::store::simple_store::AppStore;
@@ -14,7 +14,7 @@ Looks like I'm having a technical glitch. Something went wrong.
 If the issues persist send feedback via /feedback command.
 "#;
 
-pub async fn init_bot(token: &str, author_id: &str) {
+pub async fn init_bot(token: &str) {
     let api = Api::new(&token);
     let mut store = AppStore::new();
     let telegram_client = TelegramClient::new(token.to_string());
@@ -25,14 +25,8 @@ pub async fn init_bot(token: &str, author_id: &str) {
             if let UpdateKind::Message(message) = update.kind {
                 if let MessageKind::Text { data, .. } = message.kind {
                     let user_id = message.from.id.to_string();
-                    if let Err(e) = handle_message(
-                        &mut store,
-                        &telegram_client,
-                        author_id,
-                        data,
-                        user_id.clone(),
-                    )
-                    .await
+                    if let Err(e) =
+                        handle_message(&mut store, &telegram_client, data, &user_id).await
                     {
                         error!("error handling message: {}", e);
                         telegram_client
@@ -53,9 +47,8 @@ pub async fn init_bot(token: &str, author_id: &str) {
 pub async fn handle_message(
     store: &mut AppStore,
     telegram_client: &TelegramClient,
-    author_id: &str,
     payload: String,
-    user_id: String,
+    user_id: &str,
 ) -> Result<(), BotError> {
     info!("received message from: {}, message: {}", user_id, payload);
 
@@ -63,8 +56,7 @@ pub async fn handle_message(
     match payload.as_ref() {
         "/start" => start(store, &telegram_client, &user_id).await?,
         "/stop" => stop(&telegram_client, &user_id).await?,
-        "/feedback" => feedback(store, &telegram_client, &author_id, &user_id).await?,
-        "/sendnow" => send_now(&telegram_client, &user_id).await?,
+        "/feedback" => feedback(store, &telegram_client, &user_id).await?,
         "/help" => help(&telegram_client, &user_id).await?,
         _ => handle_not_a_command_message(store, &telegram_client, &user_id, &payload).await?,
     }
@@ -78,7 +70,7 @@ async fn handle_not_a_command_message(
     user_id: &str,
     payload: &str,
 ) -> Result<(), BotError> {
-    if let Some(dialog_from_store) = store.get(user_id) {
+    if let Some(dialog_from_store) = store.get_user_dialog(user_id) {
         match dialog_from_store.command.as_str() {
             "/start" => {
                 let mut dialog: Dialog<Start> = Dialog::from(dialog_from_store);
@@ -111,7 +103,7 @@ async fn handle_not_a_command_message(
 mod test {
     use mockito::server_url;
 
-    use crate::store::simple_store::DialogEntity;
+    use crate::store::simple_store::DialogPatch;
     use crate::telegram::test_helpers::mock_send_message_success;
     use crate::telegram::types::{
         InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup,
@@ -130,6 +122,7 @@ mod test {
     async fn handle_message_start_first_step() {
         //given
         let mut store = AppStore::new();
+        store.save_user(&USER_ID);
 
         let url = &server_url();
 
@@ -158,19 +151,14 @@ mod test {
         let _mock = mock_send_message_success(TOKEN, &start_first_step_success_action);
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
-        let message = handle_message(
-            &mut store,
-            &telegram_client,
-            &USER_ID,
-            "/start".to_string(),
-            USER_ID.to_string(),
-        )
-        .await;
+        let message =
+            handle_message(&mut store, &telegram_client, "/start".to_string(), USER_ID).await;
 
         //expect
         assert_eq!((), message.expect("Can not handle message"));
-        let dialog = store.get(&USER_ID).expect("There is no user with such ID");
-        assert_eq!(USER_ID.to_string(), dialog.user_id);
+        let dialog = store
+            .get_user_dialog(&USER_ID)
+            .expect("There is no user with such ID");
         assert_eq!("/start", dialog.command);
         assert_eq!("{}".to_string(), dialog.data);
         assert_eq!("Currency".to_string(), dialog.step);
@@ -180,17 +168,13 @@ mod test {
     async fn handle_message_currency_step() {
         //given
         let mut store = AppStore::new();
-
-        store.save(
-            DialogEntity::new_with(
-                USER_ID.to_string(),
-                "/start".to_string(),
-                "Currency".to_string(),
-                "{}".to_string(),
-            )
-            .expect("Invalid dialog"),
-            &USER_ID,
+        let patch = DialogPatch::new_with(
+            Some("/start".to_string()),
+            Some("Currency".to_string()),
+            None,
         );
+        store.save_user(&USER_ID);
+        store.update_dialog(patch, USER_ID);
 
         let url = &server_url();
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
@@ -202,14 +186,7 @@ mod test {
         };
         let _mock = mock_send_message_success(TOKEN, &start_end_step_message);
 
-        let message = handle_message(
-            &mut store,
-            &telegram_client,
-            &USER_ID,
-            "€".to_string(),
-            USER_ID.to_string(),
-        )
-        .await;
+        let message = handle_message(&mut store, &telegram_client, "€".to_string(), USER_ID).await;
 
         //expect
         assert_eq!((), message.expect("Can not handle message"))

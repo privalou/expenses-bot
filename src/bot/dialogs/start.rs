@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
@@ -16,20 +17,24 @@ pub enum Start {
     LastStep,
 }
 
+impl Default for Dialog<Start> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Dialog<Start> {
-    pub fn new(user_id: String) -> Self {
+    pub fn new() -> Self {
         Dialog {
             command: "/start".to_string(),
-            user_id,
             current_step: Start::FirstStep,
             data: HashMap::new(),
         }
     }
 
-    pub fn new_with(user_id: String, current_step: Start) -> Self {
+    pub fn new_with(current_step: Start) -> Self {
         Dialog {
             command: "/start".to_string(),
-            user_id,
             current_step,
             data: HashMap::new(),
         }
@@ -47,7 +52,7 @@ impl Dialog<Start> {
         match self.current_step {
             Start::FirstStep => {
                 self.current_step = Start::Currency;
-                store.save(self.clone().into(), &user_id);
+                store.update_dialog(self.clone().into(), &user_id);
                 let inline_keyboard = vec![vec![
                     InlineKeyboardButton {
                         text: "₽".to_string(),

@@ -11,28 +11,19 @@ async fn integration_test_handle_message_start_flow() {
     let telegram_client = TelegramClient::new(
         env::var("TELEGRAM_BOT_TOKEN").expect("Set TELEGRAM_BOT_TOKEN environment variable"),
     );
-    let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
-    let user_id =
-        env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+    let user_id = env::var("USER_ID").expect("Set USER_ID environment variable");
 
     handle_message(
         &mut app_store,
         &telegram_client,
-        author_id.as_str(),
         "/start".to_string(),
-        user_id.clone(),
+        &user_id,
     )
     .await
     .expect("something bad happened");
-    handle_message(
-        &mut app_store,
-        &telegram_client,
-        author_id.as_str(),
-        "€".to_string(),
-        user_id.clone(),
-    )
-    .await
-    .unwrap();
+    handle_message(&mut app_store, &telegram_client, "€".to_string(), &user_id)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -43,25 +34,21 @@ async fn integration_test_handle_message_feedback_flow() {
     let telegram_client = TelegramClient::new(
         env::var("TELEGRAM_BOT_TOKEN").expect("Set TELEGRAM_BOT_TOKEN environment variable"),
     );
-    let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
-    let user_id =
-        env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+    let user_id = env::var("USER_ID").expect("Set USER_ID environment variable");
 
     handle_message(
         &mut app_store,
         &telegram_client,
-        author_id.as_str(),
         "/feedback".to_string(),
-        user_id.clone(),
+        &user_id,
     )
     .await
     .unwrap();
     handle_message(
         &mut app_store,
         &telegram_client,
-        author_id.as_str(),
         "Fooo".to_string(),
-        user_id.clone(),
+        &user_id,
     )
     .await
     .unwrap();
@@ -75,16 +62,13 @@ async fn integration_test_handle_message_help_flow() {
     let telegram_client = TelegramClient::new(
         env::var("TELEGRAM_BOT_TOKEN").expect("Set TELEGRAM_BOT_TOKEN environment variable"),
     );
-    let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
-    let user_id =
-        env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+    let user_id = env::var("USER_ID").expect("Set USER_ID environment variable");
 
     handle_message(
         &mut app_store,
         &telegram_client,
-        author_id.as_str(),
         "/help".to_string(),
-        user_id.clone(),
+        &user_id,
     )
     .await
     .unwrap();
@@ -98,16 +82,13 @@ async fn integration_test_handle_message_sendnow_flow() {
     let telegram_client = TelegramClient::new(
         env::var("TELEGRAM_BOT_TOKEN").expect("Set TELEGRAM_BOT_TOKEN environment variable"),
     );
-    let author_id = env::var("TELEGRAM_AUTHOR").expect("Set TELEGRAM_AUTHOR environment variable");
-    let user_id =
-        env::var("TELEGRAM_CHANNEL_ID").expect("Set TELEGRAM_CHANNEL_ID environment variable");
+    let user_id = env::var("USER_ID").expect("Set USER_ID environment variable");
 
     handle_message(
         &mut app_store,
         &telegram_client,
-        author_id.as_str(),
         "/sendnow".to_string(),
-        user_id.clone(),
+        &user_id,
     )
     .await
     .unwrap();
