@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use log::{error, info};
-use telegram_bot::{Api, MessageKind, UpdateKind};
+use telegram_bot::{Api, MessageKind, UpdateKind, MessageOrChannelPost};
 
 use crate::bot::commands::{feedback, help, start, stop};
 use crate::bot::dialogs::{Dialog, Feedback, Start};
@@ -22,9 +22,49 @@ pub async fn init_bot(token: &str) {
     let mut stream = api.stream();
     while let Some(update) = stream.next().await {
         if let Ok(update) = update {
-            if let UpdateKind::Message(message) = update.kind {
-                if let MessageKind::Text { data, .. } = message.kind {
-                    let user_id = message.from.id.to_string();
+            match update.kind {
+                UpdateKind::Message(message) => {
+                    if let MessageKind::Text { data, .. } = message.kind {
+                        let user_id = message.from.id.to_string();
+                        if let Err(e) =
+                            handle_message(&mut store, &telegram_client, data, &user_id).await
+                        {
+                            error!("error handling message: {}", e);
+                            telegram_client
+                                .send_message(&Message {
+                                    chat_id: &user_id,
+                                    text: ERROR_TEXT,
+                                    ..Default::default()
+                                })
+                                .await
+                                .ok();
+                        }
+                    }
+                }
+                UpdateKind::CallbackQuery(query) => {
+                    if query.message.is_none() {
+                        info!("empty message in callback query");
+                        continue;
+                    }
+
+                    if query.data.is_none() {
+                        info!("empty data in callback query");
+                        continue;
+                    }
+                    let message = query.message.expect("There is no message at callback query");
+                    let data = query.data.expect("There is no data at callback query");
+                    let user_id;
+
+                    match message {
+                        MessageOrChannelPost::Message(message) => {
+                            user_id = message.chat.id().to_string();
+                        }
+                        MessageOrChannelPost::ChannelPost(post) => {
+                            user_id = post.chat.id.to_string();
+                        }
+                    }
+
+
                     if let Err(e) =
                         handle_message(&mut store, &telegram_client, data, &user_id).await
                     {
@@ -39,6 +79,7 @@ pub async fn init_bot(token: &str) {
                             .ok();
                     }
                 }
+                _ => {}
             }
         }
     }
