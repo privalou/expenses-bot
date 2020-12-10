@@ -30,12 +30,21 @@ impl TelegramClient {
         message: &Message<'a>,
     ) -> Result<String, TelegramError> {
         let url = format!("{}/bot{}/sendMessage", self.domain, self.token);
-        let resp: Response = Client::new().post(&url).json(message).send().await?;
+        let resp: Response = Client::new()
+            .post(&url)
+            .json(message)
+            .send()
+            .await
+            .expect("Message has not been sent");
         if resp.status().is_success() {
             let resp: Value = from_str(&resp.text().await?)?;
             let resp = &resp["result"];
-            let resp = &resp["message_id"];
-            Ok(format!("{}", resp))
+            let resp = &resp["text"];
+            let resp = match resp.as_str() {
+                Some(resp) => resp,
+                None => "",
+            };
+            Ok(resp.to_string())
         } else {
             Err(resp.text().await?.into())
         }
@@ -49,8 +58,12 @@ impl TelegramClient {
         if resp.status().is_success() {
             let resp: Value = from_str(&resp.text().await?)?;
             let resp = &resp["result"];
-            let resp = &resp["message_id"];
-            Ok(format!("{}", resp))
+            let resp = &resp["text"];
+            let resp = match resp.as_str() {
+                Some(resp) => resp,
+                None => "",
+            };
+            Ok(resp.to_string())
         } else {
             Err(resp.text().await?.into())
         }
@@ -146,12 +159,12 @@ mod tests {
             disable_web_page_preview: false,
             reply_markup: Some(&reply_markup),
         };
-        let _m = mock_send_message_success(TOKEN, &message);
+        let mock = mock_send_message_success(TOKEN, &message);
         let client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        let result = client.send_message(&message).await.unwrap();
-        assert_eq!(result, "691");
-        _m.assert();
+        let sent_text_message = client.send_message(&message).await.unwrap();
+        assert_eq!(sent_text_message, text);
+        mock.assert();
     }
 
     #[tokio::test]
@@ -191,7 +204,7 @@ mod tests {
             disable_notification: true,
         };
 
-        let _m = mock("POST", format!("/bot{}/sendPhoto", TOKEN).as_str())
+        let mock = mock("POST", format!("/bot{}/sendPhoto", TOKEN).as_str())
             .match_body(Matcher::Json(json!(image)))
             .with_status(200)
             .with_body(resp)
@@ -200,9 +213,8 @@ mod tests {
 
         let client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
         let result = client.send_photo(&image).await.unwrap();
-        let result = format!("{}", result);
-        assert_eq!(result, "691");
-        _m.assert();
+        assert_eq!(result.as_str(), "This is a test message");
+        mock.assert();
     }
 
     #[tokio::test]
@@ -295,7 +307,7 @@ mod tests {
             reply_markup: Some(&reply_markup),
         };
 
-        let _m = mock("POST", format!("/bot{}/editMessageText", TOKEN).as_str())
+        let mock = mock("POST", format!("/bot{}/editMessageText", TOKEN).as_str())
             .match_body(Matcher::Json(json!(message)))
             .with_status(200)
             .with_body("success")
@@ -305,7 +317,7 @@ mod tests {
         let client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
         let result = client.edit_message_text(&message).await.unwrap();
         assert_eq!(result, ());
-        _m.assert();
+        mock.assert();
     }
 
     #[tokio::test]
@@ -328,7 +340,7 @@ mod tests {
             reply_markup: Some(&reply_markup),
         };
 
-        let _m = mock("POST", format!("/bot{}/editMessageText", TOKEN).as_str())
+        let mock = mock("POST", format!("/bot{}/editMessageText", TOKEN).as_str())
             .match_body(Matcher::Json(json!(message)))
             .with_status(400)
             .with_header("content-type", "application/json")
@@ -339,7 +351,7 @@ mod tests {
         let result = client.edit_message_text(&message).await.unwrap_err();
         let result = format!("{}", result);
         assert_eq!(result, error);
-        _m.assert();
+        mock.assert();
     }
 
     #[tokio::test]
@@ -354,7 +366,7 @@ mod tests {
             media,
         };
 
-        let _m = mock("POST", format!("/bot{}/editMessageMedia", TOKEN).as_str())
+        let mock = mock("POST", format!("/bot{}/editMessageMedia", TOKEN).as_str())
             .match_body(Matcher::Json(json!(edit_image)))
             .with_status(200)
             .with_body("success")
@@ -364,7 +376,7 @@ mod tests {
         let client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
         let result = client.edit_message_image(&edit_image).await.unwrap();
         assert_eq!(result, ());
-        _m.assert();
+        mock.assert();
     }
 
     #[tokio::test]
@@ -380,7 +392,7 @@ mod tests {
             media,
         };
 
-        let _m = mock("POST", format!("/bot{}/editMessageMedia", TOKEN).as_str())
+        let mock = mock("POST", format!("/bot{}/editMessageMedia", TOKEN).as_str())
             .match_body(Matcher::Json(json!(edit_image)))
             .with_status(400)
             .with_header("content-type", "application/json")
@@ -391,6 +403,6 @@ mod tests {
         let result = client.edit_message_image(&edit_image).await.unwrap_err();
         let result = format!("{}", result);
         assert_eq!(result, error);
-        _m.assert();
+        mock.assert();
     }
 }
