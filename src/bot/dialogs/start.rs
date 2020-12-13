@@ -4,7 +4,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::store::simple_store::{Store, DialogEntity, UserDataPatch};
+use crate::store::simple_store::{DialogEntity, Store, UserDataPatch};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 

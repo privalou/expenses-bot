@@ -5,7 +5,7 @@ use strum_macros::EnumString;
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::store::simple_store::{Store, DialogEntity};
+use crate::store::simple_store::{DialogEntity, Store};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
