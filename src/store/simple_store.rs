@@ -48,6 +48,10 @@ impl AppStore {
         }
     }
 
+    pub fn is_registered(&self, id: &str) -> bool {
+        self.data.contains_key(id)
+    }
+
     pub fn save_user(&mut self, id: &str) -> Option<String> {
         match self.data.insert(
             id.to_string(),
@@ -163,11 +167,8 @@ impl UserData {
         Ok(UserData {
             user_id,
             current_dialog: Some(
-                DialogEntity::new_with(
-                    "/start".to_string(),
-                    Some("Start::CurrencySelection".to_string()),
-                )
-                .expect("Invalid command"),
+                DialogEntity::new_with("/start".to_string(), Some("CurrencySelection".to_string()))
+                    .expect("Invalid command"),
             ),
             currency: None,
             history: History::new(),
@@ -297,7 +298,7 @@ mod tests {
         assert!(retrieved_dialog.step.is_some());
         assert_eq!(
             retrieved_dialog.step.as_ref().unwrap(),
-            &"Start::CurrencySelection"
+            &"CurrencySelection"
         );
     }
 

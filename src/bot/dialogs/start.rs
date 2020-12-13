@@ -10,7 +10,7 @@ use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize, Display, EnumString)]
 pub enum Start {
-    NotRegistered,
+    UnknownRegistrationStatus,
     CurrencySelection,
     AlreadyRegistered,
 }
@@ -25,7 +25,7 @@ impl Dialog<Start> {
     pub fn new() -> Self {
         Dialog {
             command: "/start".to_string(),
-            current_step: None,
+            current_step: Some(Start::UnknownRegistrationStatus),
         }
     }
 
@@ -46,42 +46,11 @@ impl Dialog<Start> {
         info!("Received {} payload from user {}", payload, user_id);
 
         let step = match self.current_step {
-            None => Start::NotRegistered,
+            None => Start::UnknownRegistrationStatus,
             Some(value) => value,
         };
 
         let result: Result<String, BotError> = match step {
-            Start::NotRegistered => {
-                self.current_step = Some(Start::CurrencySelection);
-                store.save_user(&user_id);
-                let result_message_text = telegram_client
-                    .send_message(&Message {
-                        chat_id: user_id,
-                        text: "Choose your currency",
-                        reply_markup: Some(&ReplyMarkup::InlineKeyboardMarkup(
-                            InlineKeyboardMarkup {
-                                inline_keyboard: vec![vec![
-                                    InlineKeyboardButton {
-                                        text: "₽".to_string(),
-                                        callback_data: "₽".to_string(),
-                                    },
-                                    InlineKeyboardButton {
-                                        text: "$".to_string(),
-                                        callback_data: "$".to_string(),
-                                    },
-                                    InlineKeyboardButton {
-                                        text: "€".to_string(),
-                                        callback_data: "€".to_string(),
-                                    },
-                                ]],
-                            },
-                        )),
-                        ..Default::default()
-                    })
-                    .await
-                    .expect("hz chto ne tak");
-                Ok(result_message_text)
-            }
             Start::CurrencySelection => {
                 self.current_step = Some(Start::AlreadyRegistered);
                 info!("received payload at Currency step {}", &payload);
@@ -128,6 +97,46 @@ impl Dialog<Start> {
                         ..Default::default()
                     }).await?;
                 Ok(sent_to_user_text_message)
+            }
+            Start::UnknownRegistrationStatus => {
+                if store.is_registered(user_id) {
+                    self.current_step = Some(Start::AlreadyRegistered);
+                    Ok(telegram_client.send_message(&Message {
+                        chat_id: user_id,
+                        text: "You are already registered. Use /help to see list of available commands.",
+                        ..Default::default()
+                    }).await?)
+                } else {
+                    self.current_step = Some(Start::CurrencySelection);
+                    store.save_user(&user_id);
+                    let result_message_text = telegram_client
+                        .send_message(&Message {
+                            chat_id: user_id,
+                            text: "Choose your currency",
+                            reply_markup: Some(&ReplyMarkup::InlineKeyboardMarkup(
+                                InlineKeyboardMarkup {
+                                    inline_keyboard: vec![vec![
+                                        InlineKeyboardButton {
+                                            text: "₽".to_string(),
+                                            callback_data: "₽".to_string(),
+                                        },
+                                        InlineKeyboardButton {
+                                            text: "$".to_string(),
+                                            callback_data: "$".to_string(),
+                                        },
+                                        InlineKeyboardButton {
+                                            text: "€".to_string(),
+                                            callback_data: "€".to_string(),
+                                        },
+                                    ]],
+                                },
+                            )),
+                            ..Default::default()
+                        })
+                        .await
+                        .expect("hz chto ne tak");
+                    Ok(result_message_text)
+                }
             }
         };
         Ok(result.expect("HZ CHTO ZA HUETA"))

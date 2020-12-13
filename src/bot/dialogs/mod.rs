@@ -90,7 +90,7 @@ mod tests {
             command,
             DialogEntity {
                 command: "/start".to_string(),
-                step: None,
+                step: Some("UnknownRegistrationStatus".to_string()),
             }
         );
         let mut dialog_converted: Dialog<Start> = command.into();

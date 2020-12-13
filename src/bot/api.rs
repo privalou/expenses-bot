@@ -271,7 +271,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
             .get_user_dialog(&USER_ID)
             .expect("There is no user with such ID");
         assert_eq!("/start", dialog.command);
-        assert_eq!("Start::CurrencySelection", dialog.step.as_ref().unwrap());
+        assert_eq!("CurrencySelection", dialog.step.as_ref().unwrap());
 
         mock.assert();
     }
