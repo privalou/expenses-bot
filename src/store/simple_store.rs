@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 #[allow(dead_code)]
-pub struct AppStore {
+pub struct Store {
     data: HashMap<String, UserData>,
 }
 
@@ -33,17 +33,17 @@ pub struct DialogEntity {
     pub step: Option<String>,
 }
 
-impl Default for AppStore {
+impl Default for Store {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[allow(dead_code)]
-impl AppStore {
+impl Store {
     #[allow(dead_code)]
-    pub fn new() -> AppStore {
-        AppStore {
+    pub fn new() -> Store {
+        Store {
             data: HashMap::new(),
         }
     }
@@ -282,8 +282,21 @@ mod tests {
     }
 
     #[test]
+    fn is_registered_should_return_false_if_no_such_user_at_store() {
+        let store = Store::new();
+        assert!(!store.is_registered("user_id"));
+    }
+
+    #[test]
+    fn is_registered_should_return_true_if_user_at_store() {
+        let mut store = Store::new();
+        assert!(store.save_user("user_id").is_none());
+        assert!(store.is_registered("user_id"));
+    }
+
+    #[test]
     fn user_data_is_saved_at_store() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
 
         assert!(store.save_user("user_id").is_none());
         let retrieved_user_data = store
@@ -304,7 +317,7 @@ mod tests {
 
     #[test]
     fn missing_user() {
-        let store = AppStore::new();
+        let store = Store::new();
         let user_id = Faker.fake::<String>();
 
         assert!(store.get_user_data(&user_id).is_none());
@@ -312,7 +325,7 @@ mod tests {
 
     #[test]
     fn update_dialog_works() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         assert_eq!(None, store.save_user("user_id"));
 
         let dialog =
@@ -330,7 +343,7 @@ mod tests {
 
     #[test]
     fn update_currency_works() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
 
         assert!(store.save_user("user_id").is_none());
         assert_eq!(store.update_currency("$", "user_id"), Some("$".to_string()));
@@ -342,7 +355,7 @@ mod tests {
 
     #[test]
     fn delete_works() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         assert!(store.save_user("user_id").is_none());
 
         assert_eq!((), store.delete("user_id").unwrap());
@@ -351,7 +364,7 @@ mod tests {
 
     #[test]
     fn deleting_missing_user_returns_none() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         let deleted_user = store.delete(&Faker.fake::<String>());
         assert_eq!(None, deleted_user)
     }

@@ -4,7 +4,7 @@ use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
 
 use crate::bot::dialogs::{Dialog, Feedback, Start};
 use crate::bot::error::BotError;
-use crate::store::simple_store::AppStore;
+use crate::store::simple_store::Store;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -26,7 +26,7 @@ Or you can also send feedback via /feedback command.
 
 pub async fn init_bot(token: &str) {
     let api = Api::new(&token);
-    let mut store = AppStore::new();
+    let mut store = Store::new();
     let telegram_client = TelegramClient::new(token.to_string());
 
     let mut stream = api.stream();
@@ -97,7 +97,7 @@ pub async fn init_bot(token: &str) {
 }
 
 pub async fn handle_message(
-    store: &mut AppStore,
+    store: &mut Store,
     telegram_client: &TelegramClient,
     payload: String,
     user_id: &str,
@@ -116,7 +116,7 @@ pub async fn handle_message(
 }
 
 async fn start(
-    store: &mut AppStore,
+    store: &mut Store,
     telegram_client: &TelegramClient,
     user_id: &str,
 ) -> Result<String, BotError> {
@@ -142,7 +142,7 @@ async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<String,
 }
 
 async fn feedback(
-    store: &mut AppStore,
+    store: &mut Store,
     telegram_client: &TelegramClient,
     user_id: &str,
 ) -> Result<String, BotError> {
@@ -168,7 +168,7 @@ async fn help(telegram_client: &TelegramClient, user_id: &str) -> Result<String,
 
 /// process if this message received from registered user else send don't get message
 async fn handle_not_a_command_message(
-    store: &mut AppStore,
+    store: &mut Store,
     telegram_client: &TelegramClient,
     user_id: &str,
     payload: &str,
@@ -229,7 +229,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
     #[tokio::test]
     async fn handle_message_start_first_step() {
         //given
-        let mut store = AppStore::new();
+        let mut store = Store::new();
 
         let url = &server_url();
 
@@ -279,7 +279,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
     #[tokio::test]
     async fn handle_message_currency_step() {
         //given
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         let dialog =
             DialogEntity::new_with("/start".to_string(), Some("CurrencySelection".to_string()))
                 .expect("Invalid DialogEntity");
@@ -318,7 +318,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
     #[tokio::test]
     async fn feedback_for_registered_user_success() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         store.save_user(USER_ID);
 
         let url = &server_url();

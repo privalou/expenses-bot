@@ -5,7 +5,7 @@ use strum_macros::EnumString;
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::store::simple_store::{AppStore, DialogEntity};
+use crate::store::simple_store::{Store, DialogEntity};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -37,7 +37,7 @@ impl Dialog<Feedback> {
 
     pub async fn handle_current_step(
         &mut self,
-        store: &mut AppStore,
+        store: &mut Store,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,
@@ -103,7 +103,7 @@ impl Dialog<Feedback> {
 mod test {
     use mockito::server_url;
 
-    use crate::store::simple_store::AppStore;
+    use crate::store::simple_store::Store;
     use crate::telegram::test_helpers::mock_send_message_success;
 
     use super::*;
@@ -118,7 +118,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
     #[tokio::test]
     async fn handle_start_step_with_registered_user() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         store.save_user(USER_ID);
 
         let url = &server_url();
@@ -142,7 +142,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
     #[tokio::test]
     async fn handle_current_step_success_input() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         store.save_user(USER_ID);
         let dialog_entity =
             DialogEntity::new_with("/feedback".to_string(), Some("Feedback::Input".to_string()))

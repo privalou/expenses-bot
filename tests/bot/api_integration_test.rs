@@ -1,12 +1,12 @@
 use std::env;
 
 use expenses::bot::api::handle_message;
-use expenses::store::simple_store::AppStore;
+use expenses::store::simple_store::Store;
 use expenses::telegram::client::TelegramClient;
 
 #[tokio::test]
 async fn integration_test_handle_message_start_flow() {
-    let mut app_store = AppStore::new();
+    let mut app_store = Store::new();
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let telegram_client = TelegramClient::new(
         env::var("TELEGRAM_BOT_TOKEN").expect("Set TELEGRAM_BOT_TOKEN environment variable"),
@@ -28,7 +28,7 @@ async fn integration_test_handle_message_start_flow() {
 
 #[tokio::test]
 async fn integration_test_handle_message_feedback_flow() {
-    let mut app_store = AppStore::new();
+    let mut app_store = Store::new();
 
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let telegram_client = TelegramClient::new(
@@ -56,7 +56,7 @@ async fn integration_test_handle_message_feedback_flow() {
 
 #[tokio::test]
 async fn integration_test_handle_message_help_flow() {
-    let mut app_store = AppStore::new();
+    let mut app_store = Store::new();
 
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let telegram_client = TelegramClient::new(
@@ -76,7 +76,7 @@ async fn integration_test_handle_message_help_flow() {
 
 #[tokio::test]
 async fn integration_test_handle_message_sendnow_flow() {
-    let mut app_store = AppStore::new();
+    let mut app_store = Store::new();
 
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let telegram_client = TelegramClient::new(

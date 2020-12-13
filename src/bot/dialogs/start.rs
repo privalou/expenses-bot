@@ -4,7 +4,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::store::simple_store::{AppStore, DialogEntity, UserDataPatch};
+use crate::store::simple_store::{Store, DialogEntity, UserDataPatch};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 
@@ -38,7 +38,7 @@ impl Dialog<Start> {
 
     pub async fn handle_current_step(
         &mut self,
-        store: &mut AppStore,
+        store: &mut Store,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,
@@ -156,7 +156,7 @@ mod test {
 
     #[tokio::test]
     async fn handle_current_step_success_start_first_step_with_not_registered_user() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
 
         let url = &server_url();
 
@@ -213,7 +213,7 @@ mod test {
 
     #[tokio::test]
     async fn handle_current_step_success_start_currency_step() {
-        let mut store = AppStore::new();
+        let mut store = Store::new();
         store.save_user(USER_ID);
 
         let url = &server_url();
