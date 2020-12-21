@@ -37,7 +37,7 @@ impl Dialog<Feedback> {
 
     pub async fn handle_current_step(
         &mut self,
-        store: &mut Store,
+        store: &Store,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,

@@ -24,99 +24,111 @@ If you encounter any issues feel free to open an issue.
 Or you can also send feedback via /feedback command.
 "#;
 
-pub async fn init_bot(token: &str) {
-    let api = Api::new(&token);
-    let mut store = Store::new();
-    let telegram_client = TelegramClient::new(token.to_string());
+pub struct Bot {
+    store: Store,
+    telegram_client: TelegramClient,
+}
 
-    let mut stream = api.stream();
-    while let Some(update) = stream.next().await {
-        if let Ok(update) = update {
-            match update.kind {
-                UpdateKind::Message(message) => {
-                    if let MessageKind::Text { data, .. } = message.kind {
-                        let user_id = message.from.id.to_string();
-                        if let Err(e) =
-                            handle_message(&mut store, &telegram_client, data, &user_id).await
-                        {
+impl Bot {
+    pub fn new(token: &str) -> Self {
+        let store = Store::new();
+        let telegram_client = TelegramClient::new(token.to_string());
+        Bot {
+            store,
+            telegram_client,
+        }
+    }
+
+    pub fn new_with(store: Store, telegram_client: TelegramClient) -> Self {
+        Bot {
+            store,
+            telegram_client,
+        }
+    }
+
+    pub async fn init_bot(&self, token: &str) {
+        let api = Api::new(&token);
+        let mut stream = api.stream();
+        while let Some(update) = stream.next().await {
+            if let Ok(update) = update {
+                match update.kind {
+                    UpdateKind::Message(message) => {
+                        if let MessageKind::Text { data, .. } = message.kind {
+                            let user_id = message.from.id.to_string();
+                            if let Err(e) = self.handle_message(data, &user_id).await {
+                                error!("error handling message: {}", e);
+                                self.telegram_client
+                                    .send_message(&Message {
+                                        chat_id: &user_id,
+                                        text: ERROR_TEXT,
+                                        ..Default::default()
+                                    })
+                                    .await
+                                    .ok();
+                            }
+                        }
+                    }
+                    UpdateKind::CallbackQuery(query) => {
+                        if query.message.is_none() {
+                            info!("empty message in callback query");
+                            continue;
+                        }
+
+                        if query.data.is_none() {
+                            info!("empty data in callback query");
+                            continue;
+                        }
+                        let message = query
+                            .message
+                            .expect("There is no message at callback query");
+                        let data = query.data.expect("There is no data at callback query");
+                        let user_id;
+
+                        match message {
+                            MessageOrChannelPost::Message(message) => {
+                                user_id = message.chat.id().to_string();
+                            }
+                            MessageOrChannelPost::ChannelPost(post) => {
+                                user_id = post.chat.id.to_string();
+                            }
+                        }
+
+                        if let Err(e) = self.handle_message(data, &user_id).await {
                             error!("error handling message: {}", e);
-                            telegram_client
-                                .send_message(&Message {
-                                    chat_id: &user_id,
-                                    text: ERROR_TEXT,
-                                    ..Default::default()
-                                })
-                                .await
-                                .ok();
-                        }
-                    }
-                }
-                UpdateKind::CallbackQuery(query) => {
-                    if query.message.is_none() {
-                        info!("empty message in callback query");
-                        continue;
-                    }
-
-                    if query.data.is_none() {
-                        info!("empty data in callback query");
-                        continue;
-                    }
-                    let message = query
-                        .message
-                        .expect("There is no message at callback query");
-                    let data = query.data.expect("There is no data at callback query");
-                    let user_id;
-
-                    match message {
-                        MessageOrChannelPost::Message(message) => {
-                            user_id = message.chat.id().to_string();
-                        }
-                        MessageOrChannelPost::ChannelPost(post) => {
-                            user_id = post.chat.id.to_string();
-                        }
-                    }
-
-                    if let Err(e) =
-                        handle_message(&mut store, &telegram_client, data, &user_id).await
-                    {
-                        error!("error handling message: {}", e);
-                        telegram_client
-                            .send_message(&Message {
+                            let error_message = Message {
                                 chat_id: &user_id,
                                 text: ERROR_TEXT,
                                 ..Default::default()
-                            })
-                            .await
-                            .ok();
+                            };
+                            self.telegram_client.send_message(&error_message).await.ok();
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
-}
 
-pub async fn handle_message(
-    store: &mut Store,
-    telegram_client: &TelegramClient,
-    payload: String,
-    user_id: &str,
-) -> Result<String, BotError> {
-    info!("received message from: {}, message: {}", user_id, payload);
+    pub async fn handle_message(&self, payload: String, user_id: &str) -> Result<String, BotError> {
+        info!("received message from: {}, message: {}", user_id, payload);
 
-    // TODO: Extract commands as enum
-    let sent_text_message = match payload.as_ref() {
-        "/start" => start(store, &telegram_client, &user_id).await?,
-        "/stop" => stop(&telegram_client, &user_id).await?,
-        "/feedback" => feedback(store, &telegram_client, &user_id).await?,
-        "/help" => help(&telegram_client, &user_id).await?,
-        _ => handle_not_a_command_message(store, &telegram_client, &user_id, &payload).await?,
-    };
-    Ok(sent_text_message)
+        // TODO: Extract commands as enum
+        let sent_text_message = match payload.as_ref() {
+            "/start" => start(&self.store, &self.telegram_client, &user_id).await?,
+            "/stop" => stop(&self.telegram_client, &user_id).await?,
+            "/feedback" => feedback(&self.store, &self.telegram_client, &user_id).await?,
+            "/help" => help(&self.telegram_client, &user_id).await?,
+            _ => {
+                handle_not_a_command_message(&self.store, &self.telegram_client, &user_id, &payload)
+                    .await?
+            }
+        };
+        Ok(sent_text_message)
+    }
 }
 
 async fn start(
-    store: &mut Store,
+    store: &Store,
     telegram_client: &TelegramClient,
     user_id: &str,
 ) -> Result<String, BotError> {
@@ -142,12 +154,12 @@ async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<String,
 }
 
 async fn feedback(
-    store: &mut Store,
+    store: &Store,
     telegram_client: &TelegramClient,
     user_id: &str,
 ) -> Result<String, BotError> {
     let sent_text_message = Dialog::<Feedback>::new()
-        .handle_current_step(store, &telegram_client, user_id, "")
+        .handle_current_step(&store, &telegram_client, user_id, "")
         .await?;
 
     Ok(sent_text_message)
@@ -168,7 +180,7 @@ async fn help(telegram_client: &TelegramClient, user_id: &str) -> Result<String,
 
 /// process if this message received from registered user else send don't get message
 async fn handle_not_a_command_message(
-    store: &mut Store,
+    store: &Store,
     telegram_client: &TelegramClient,
     user_id: &str,
     payload: &str,
@@ -229,9 +241,6 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
     #[tokio::test]
     async fn handle_message_start_first_step() {
         //given
-        let mut store = Store::new();
-
-        let url = &server_url();
 
         let markup = ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
             inline_keyboard: vec![vec![
@@ -258,16 +267,20 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
         let mock = mock_send_message_success(TOKEN, &start_first_step_success_action);
 
-        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
-        let message =
-            handle_message(&mut store, &telegram_client, "/start".to_string(), USER_ID).await;
+        let store = Store::new();
+        let bot = Bot::new_with(
+            store,
+            TelegramClient::new_with(String::from(TOKEN), server_url()),
+        );
+        let message = bot.handle_message("/start".to_string(), USER_ID).await;
 
         //expect
         assert_eq!(
             start_first_step_success_action.text,
             message.expect("Can not handle message")
         );
-        let dialog = store
+        let dialog = bot
+            .store
             .get_user_dialog(&USER_ID)
             .expect("There is no user with such ID");
         assert_eq!("/start", dialog.command);
@@ -279,15 +292,9 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
     #[tokio::test]
     async fn handle_message_currency_step() {
         //given
-        let mut store = Store::new();
         let dialog =
             DialogEntity::new_with("/start".to_string(), Some("CurrencySelection".to_string()))
                 .expect("Invalid DialogEntity");
-        store.save_user(&USER_ID);
-        assert!(store.update_dialog(Some(dialog), USER_ID).is_ok());
-
-        let url = &server_url();
-        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
         let start_end_step_message = Message {
             chat_id: USER_ID,
@@ -296,10 +303,21 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
         };
         let mock = mock_send_message_success(TOKEN, &start_end_step_message);
 
-        let sent_text_message =
-            handle_message(&mut store, &telegram_client, "€".to_string(), USER_ID).await;
+        let store = Store::new();
+        store.save_user(&USER_ID);
+        assert!(store.update_dialog(Some(dialog), USER_ID).is_ok());
 
-        let user_data = store.get_user_data(USER_ID).expect("No user with such id");
+        let bot = Bot::new_with(
+            store,
+            TelegramClient::new_with(String::from(TOKEN), String::from(server_url())),
+        );
+
+        let sent_text_message = bot.handle_message("€".to_string(), USER_ID).await;
+
+        let user_data = bot
+            .store
+            .get_user_data(USER_ID)
+            .expect("No user with such id");
 
         assert_eq!(
             user_data

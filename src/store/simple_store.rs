@@ -1,9 +1,10 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 
 #[allow(dead_code)]
 pub struct Store {
-    data: HashMap<String, UserData>,
+    data: RefCell<HashMap<String, UserData>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,16 +45,16 @@ impl Store {
     #[allow(dead_code)]
     pub fn new() -> Store {
         Store {
-            data: HashMap::new(),
+            data: RefCell::new(HashMap::new()),
         }
     }
 
     pub fn is_registered(&self, id: &str) -> bool {
-        self.data.contains_key(id)
+        self.data.borrow().contains_key(id)
     }
 
-    pub fn save_user(&mut self, id: &str) -> Option<String> {
-        match self.data.insert(
+    pub fn save_user(&self, id: &str) -> Option<String> {
+        match self.data.borrow_mut().insert(
             id.to_string(),
             UserData::new(id.to_string()).expect("Invalid user id"),
         ) {
@@ -62,10 +63,10 @@ impl Store {
         }
     }
 
-    pub fn get_user_dialog(&self, id: &str) -> Option<&DialogEntity> {
-        if let Some(user_data) = self.data.get(id) {
+    pub fn get_user_dialog(&self, id: &str) -> Option<DialogEntity> {
+        if let Some(user_data) = self.data.borrow().get(id) {
             if let Some(current_dialog) = &user_data.current_dialog {
-                Some(&current_dialog)
+                Some(current_dialog.clone())
             } else {
                 None
             }
@@ -74,20 +75,16 @@ impl Store {
         }
     }
 
-    pub fn get_user_data(&self, id: &str) -> Option<&UserData> {
-        if let Some(user_data) = self.data.get(id) {
-            Some(&user_data)
+    pub fn get_user_data(&self, id: &str) -> Option<UserData> {
+        if let Some(user_data) = self.data.borrow().get(id) {
+            Some(user_data.clone())
         } else {
             None
         }
     }
 
-    pub fn update_dialog(
-        &mut self,
-        dialog: Option<DialogEntity>,
-        id: &str,
-    ) -> Result<(), StoreError> {
-        if let Some(user_data) = self.data.get_mut(id) {
+    pub fn update_dialog(&self, dialog: Option<DialogEntity>, id: &str) -> Result<(), StoreError> {
+        if let Some(user_data) = self.data.borrow_mut().get_mut(id) {
             if let Some(dialog) = dialog {
                 user_data.current_dialog = Some(DialogEntity {
                     command: dialog.command,
@@ -104,8 +101,8 @@ impl Store {
         }
     }
 
-    pub fn update_currency(&mut self, new_currency: &str, id: &str) -> Option<String> {
-        if let Some(user_data) = self.data.get_mut(id) {
+    pub fn update_currency(&self, new_currency: &str, id: &str) -> Option<String> {
+        if let Some(user_data) = self.data.borrow_mut().get_mut(id) {
             user_data.currency = Some(new_currency.to_string());
             // todo: how to get rid off cloning for Option<String>
             let currency = user_data.currency.clone().expect("Currency haven't saved");
@@ -116,11 +113,11 @@ impl Store {
     }
 
     pub fn update_user_data(
-        &mut self,
+        &self,
         user_data_patch: UserDataPatch,
         id: &str,
     ) -> Result<(), StoreError> {
-        if let Some(user_data) = self.data.get_mut(id) {
+        if let Some(user_data) = self.data.borrow_mut().get_mut(id) {
             if let Some(currency) = user_data_patch.currency {
                 user_data.currency = Some(currency);
             }
@@ -138,8 +135,8 @@ impl Store {
         }
     }
 
-    fn delete(&mut self, id: &str) -> Option<()> {
-        if self.data.remove(id).is_some() {
+    fn delete(&self, id: &str) -> Option<()> {
+        if self.data.borrow_mut().remove(id).is_some() {
             Some(())
         } else {
             None
@@ -289,14 +286,14 @@ mod tests {
 
     #[test]
     fn is_registered_should_return_true_if_user_at_store() {
-        let mut store = Store::new();
+        let store = Store::new();
         assert!(store.save_user("user_id").is_none());
         assert!(store.is_registered("user_id"));
     }
 
     #[test]
     fn user_data_is_saved_at_store() {
-        let mut store = Store::new();
+        let store = Store::new();
 
         assert!(store.save_user("user_id").is_none());
         let retrieved_user_data = store
@@ -325,7 +322,7 @@ mod tests {
 
     #[test]
     fn update_dialog_works() {
-        let mut store = Store::new();
+        let store = Store::new();
         assert_eq!(None, store.save_user("user_id"));
 
         let dialog =
@@ -343,7 +340,7 @@ mod tests {
 
     #[test]
     fn update_currency_works() {
-        let mut store = Store::new();
+        let store = Store::new();
 
         assert!(store.save_user("user_id").is_none());
         assert_eq!(store.update_currency("$", "user_id"), Some("$".to_string()));
@@ -355,7 +352,7 @@ mod tests {
 
     #[test]
     fn delete_works() {
-        let mut store = Store::new();
+        let store = Store::new();
         assert!(store.save_user("user_id").is_none());
 
         assert_eq!((), store.delete("user_id").unwrap());
@@ -364,7 +361,7 @@ mod tests {
 
     #[test]
     fn deleting_missing_user_returns_none() {
-        let mut store = Store::new();
+        let store = Store::new();
         let deleted_user = store.delete(&Faker.fake::<String>());
         assert_eq!(None, deleted_user)
     }

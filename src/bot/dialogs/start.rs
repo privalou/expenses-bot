@@ -38,7 +38,7 @@ impl Dialog<Start> {
 
     pub async fn handle_current_step(
         &mut self,
-        store: &mut Store,
+        store: &Store,
         telegram_client: &TelegramClient,
         user_id: &str,
         payload: &str,
@@ -54,8 +54,10 @@ impl Dialog<Start> {
             Start::CurrencySelection => {
                 self.current_step = Some(Start::AlreadyRegistered);
                 info!("received payload at Currency step {}", &payload);
-                let dialog_entity =
-                    DialogEntity::new_with("/start".to_string(), Some(step.to_string()));
+                let dialog_entity = DialogEntity::new_with(
+                    "/start".to_string(),
+                    Some(Start::AlreadyRegistered.to_string()),
+                );
                 match dialog_entity {
                     Ok(_) => {
                         store
@@ -196,20 +198,40 @@ mod test {
 
         mock.assert();
     }
-    //
-    // #[tokio::test]
-    // async fn handle_current_step_response_for_registered_user() {
-    //     let mut store = AppStore::new();
-    //     store.save_user(USER_ID);
-    //
-    //     let url = &server_url();
-    //
-    //     let first_step_response_to_registered_user = Message {
-    //         chat_id: USER_ID,
-    //         text: "You are already registered. ",
-    //         ..Default::default()
-    //     };
-    // }
+
+    #[tokio::test]
+    async fn handle_current_step_response_for_registered_user() {
+        let mut store = Store::new();
+        store.save_user(USER_ID);
+
+        let url = &server_url();
+
+        let unknown_registration_status_response_to_registered_user = Message {
+            chat_id: USER_ID,
+            text: "You are already registered. Use /help to see list of available commands.",
+            ..Default::default()
+        };
+
+        let mock = mock_send_message_success(
+            TOKEN,
+            &unknown_registration_status_response_to_registered_user,
+        );
+
+        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
+
+        let mut dialog = Dialog::<Start>::new();
+
+        let received_text = dialog
+            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
+            .await
+            .expect("Can not process start step");
+        assert_eq!(
+            received_text,
+            unknown_registration_status_response_to_registered_user.text
+        );
+
+        mock.assert();
+    }
 
     #[tokio::test]
     async fn handle_current_step_success_start_currency_step() {
