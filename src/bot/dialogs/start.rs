@@ -4,13 +4,13 @@ use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
+use crate::bot::error::BotError::AnotherError;
 use crate::store::simple_store::{DialogEntity, Store, UserDataPatch};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize, Display, EnumString)]
 pub enum Start {
-    UnknownRegistrationStatus,
     CurrencySelection,
     AlreadyRegistered,
 }
@@ -25,7 +25,7 @@ impl Dialog<Start> {
     pub fn new() -> Self {
         Dialog {
             command: "/start".to_string(),
-            current_step: Some(Start::UnknownRegistrationStatus),
+            current_step: None,
         }
     }
 
@@ -37,7 +37,7 @@ impl Dialog<Start> {
     }
 
     pub async fn handle_current_step(
-        &mut self,
+        &self,
         store: &Store,
         telegram_client: &TelegramClient,
         user_id: &str,
@@ -45,34 +45,23 @@ impl Dialog<Start> {
     ) -> Result<String, BotError> {
         info!("Received {} payload from user {}", payload, user_id);
 
-        let step = match self.current_step {
-            None => Start::UnknownRegistrationStatus,
-            Some(value) => value,
-        };
-
-        let result: Result<String, BotError> = match step {
-            Start::CurrencySelection => {
-                self.current_step = Some(Start::AlreadyRegistered);
+        let result = match self.current_step {
+            Some(Start::CurrencySelection) => {
                 info!("received payload at Currency step {}", &payload);
                 let dialog_entity = DialogEntity::new_with(
                     "/start".to_string(),
                     Some(Start::AlreadyRegistered.to_string()),
-                );
-                match dialog_entity {
+                )
+                    .expect("Could not sent message because of invalid");
+                match store.update_user_data(
+                        UserDataPatch::new_with(
+                            Some(dialog_entity),
+                            Some(payload.to_string()),
+                            None,
+                        ),
+                        &user_id,
+                    ) {
                     Ok(_) => {
-                        store
-                            .update_user_data(
-                                UserDataPatch::new_with(
-                                    Some(
-                                        dialog_entity
-                                            .expect("Nu nado podumat pochemu tut ne None."),
-                                    ),
-                                    Some(payload.to_string()),
-                                    None,
-                                ),
-                                &user_id,
-                            )
-                            .expect("No such user at store");
                         let text_sent_to_user = telegram_client
                             .send_message(&Message {
                                 chat_id: user_id,
@@ -82,12 +71,10 @@ impl Dialog<Start> {
                             .await?;
                         Ok(text_sent_to_user)
                     }
-                    Err(_) => Err(BotError::AnotherError(
-                        "Could not sent message because of invalid".to_string(),
-                    )),
+                    Err(_) => {Err(AnotherError("No such user at store".to_string()))}
                 }
             }
-            Start::AlreadyRegistered => {
+            Some(Start::AlreadyRegistered) => {
                 info!(
                     "received payload at AlreadyRegistered step from user {}, {}",
                     &payload, &user_id
@@ -100,16 +87,14 @@ impl Dialog<Start> {
                     }).await?;
                 Ok(sent_to_user_text_message)
             }
-            Start::UnknownRegistrationStatus => {
+            None => {
                 if store.is_registered(user_id) {
-                    self.current_step = Some(Start::AlreadyRegistered);
                     Ok(telegram_client.send_message(&Message {
                         chat_id: user_id,
                         text: "You are already registered. Use /help to see list of available commands.",
                         ..Default::default()
                     }).await?)
                 } else {
-                    self.current_step = Some(Start::CurrencySelection);
                     store.save_user(&user_id);
                     let result_message_text = telegram_client
                         .send_message(&Message {
@@ -141,6 +126,7 @@ impl Dialog<Start> {
                 }
             }
         };
+
         Ok(result.expect("HZ CHTO ZA HUETA"))
     }
 }
@@ -189,7 +175,7 @@ mod test {
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        let mut dialog = Dialog::<Start>::new();
+        let dialog = Dialog::<Start>::new();
         let received_text = dialog
             .handle_current_step(&mut store, &telegram_client, USER_ID, "")
             .await
@@ -219,7 +205,7 @@ mod test {
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        let mut dialog = Dialog::<Start>::new();
+        let dialog = Dialog::<Start>::new();
 
         let received_text = dialog
             .handle_current_step(&mut store, &telegram_client, USER_ID, "")
@@ -249,7 +235,7 @@ mod test {
 
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        let mut dialog = Dialog::<Start>::new_with(Start::CurrencySelection);
+        let dialog = Dialog::<Start>::new_with(Start::CurrencySelection);
         let received_text_message = dialog
             .handle_current_step(&mut store, &telegram_client, USER_ID, "$")
             .await

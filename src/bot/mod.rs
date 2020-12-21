@@ -194,7 +194,7 @@ async fn handle_not_a_command_message(
             if let Some(dialog_entity) = dialog_from_store {
                 let sent_message = match dialog_entity.command.as_str() {
                     "/start" => {
-                        let mut dialog: Dialog<Start> = Dialog::from(dialog_entity);
+                        let dialog: Dialog<Start> = Dialog::from(dialog_entity);
                         dialog
                             .handle_current_step(store, telegram_client, user_id, payload)
                             .await?

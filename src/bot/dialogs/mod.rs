@@ -6,6 +6,7 @@ pub use self::feedback::Feedback;
 pub use self::start::Start;
 use serde::Serialize;
 
+mod add;
 mod feedback;
 mod start;
 
@@ -90,7 +91,7 @@ mod tests {
             command,
             DialogEntity {
                 command: "/start".to_string(),
-                step: Some("UnknownRegistrationStatus".to_string()),
+                step: None,
             }
         );
         let mut dialog_converted: Dialog<Start> = command.into();
