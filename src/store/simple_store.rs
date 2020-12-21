@@ -63,15 +63,18 @@ impl Store {
         }
     }
 
-    pub fn get_user_dialog(&self, id: &str) -> Option<DialogEntity> {
+    pub fn get_user_dialog(&self, id: &str) -> Result<Option<DialogEntity>, StoreError> {
         if let Some(user_data) = self.data.borrow().get(id) {
             if let Some(current_dialog) = &user_data.current_dialog {
-                Some(current_dialog.clone())
+                Ok(Some(current_dialog.clone()))
             } else {
-                None
+                Ok(None)
             }
         } else {
-            None
+            Err(StoreError(format!(
+                "There is not such user with {} id at store",
+                id
+            )))
         }
     }
 
@@ -330,11 +333,13 @@ mod tests {
 
         assert!(store.update_dialog(Some(dialog), "user_id").is_ok());
 
-        let updated_dialog_option = store.get_user_dialog("user_id");
+        let dialog_update_result = store.get_user_dialog("user_id");
+        assert!(dialog_update_result.is_ok());
+        let updated_dialog_option = dialog_update_result.unwrap();
         assert!(updated_dialog_option.is_some());
         let updated_dialog = updated_dialog_option.unwrap();
         assert_eq!("/test", updated_dialog.command);
-        let step = &updated_dialog.step;
+        let step = updated_dialog.step;
         assert!(step.is_none());
     }
 
@@ -356,7 +361,7 @@ mod tests {
         assert!(store.save_user("user_id").is_none());
 
         assert_eq!((), store.delete("user_id").unwrap());
-        assert_eq!(store.get_user_dialog("user_id"), None);
+        assert!(store.get_user_dialog("user_id").is_err());
     }
 
     #[test]

@@ -1,5 +1,5 @@
-use crate::bot::api::Bot;
 use crate::bot::error::BotError;
+use crate::bot::Bot;
 
 pub mod bot;
 mod log;
