@@ -52,15 +52,11 @@ impl Dialog<Start> {
                     "/start".to_string(),
                     Some(Start::AlreadyRegistered.to_string()),
                 )
-                    .expect("Could not sent message because of invalid");
+                .expect("Could not sent message because of invalid");
                 match store.update_user_data(
-                        UserDataPatch::new_with(
-                            Some(dialog_entity),
-                            Some(payload.to_string()),
-                            None,
-                        ),
-                        &user_id,
-                    ) {
+                    UserDataPatch::new_with(Some(dialog_entity), Some(payload.to_string()), None),
+                    &user_id,
+                ) {
                     Ok(_) => {
                         let text_sent_to_user = telegram_client
                             .send_message(&Message {
@@ -71,7 +67,7 @@ impl Dialog<Start> {
                             .await?;
                         Ok(text_sent_to_user)
                     }
-                    Err(_) => {Err(AnotherError("No such user at store".to_string()))}
+                    Err(_) => Err(AnotherError("No such user at store".to_string())),
                 }
             }
             Some(Start::AlreadyRegistered) => {

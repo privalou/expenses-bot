@@ -26,7 +26,3 @@ cucumber = { package = "cucumber_rust", version = "^0.7.0" }
 fake = "2"
 mockito = "0.27.0"
 serial_test = "0.5.0"
-
-[[test]]
-name = "cucumber"
-harness = false
