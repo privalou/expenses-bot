@@ -1,6 +1,6 @@
 use serde::de::DeserializeOwned;
 
-use crate::store::simple_store::DialogEntity;
+use crate::store::DialogEntity;
 
 pub use self::feedback::Feedback;
 pub use self::start::Start;

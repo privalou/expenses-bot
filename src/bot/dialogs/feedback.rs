@@ -5,7 +5,7 @@ use strum_macros::EnumString;
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::store::simple_store::{DialogEntity, Store};
+use crate::store::{DialogEntity, Store};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -69,14 +69,14 @@ impl Dialog<Feedback> {
                         Ok(received_text)
                     }
                     Err(_) => {
-                        let received_text = telegram_client
+                        let sent_text = telegram_client
                             .send_message(&Message {
                                 chat_id: &user_id,
                                 text: "Only registered users can leave a feedback. Go to /start and create profile before leaving a feedback",
                                 ..Default::default()
                             })
                             .await?;
-                        Ok(received_text)
+                        Ok(sent_text)
                     }
                 }
             }
@@ -103,7 +103,7 @@ impl Dialog<Feedback> {
 mod test {
     use mockito::server_url;
 
-    use crate::store::simple_store::Store;
+    use crate::store::Store;
     use crate::telegram::test_helpers::mock_send_message_success;
 
     use super::*;

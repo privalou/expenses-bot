@@ -4,7 +4,7 @@ use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
 
 use crate::bot::dialogs::{Dialog, Feedback, Start};
 use crate::bot::error::BotError;
-use crate::store::simple_store::Store;
+use crate::store::Store;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
 
@@ -209,7 +209,7 @@ async fn handle_not_a_command_message(
                 };
                 Ok(sent_message)
             } else {
-                return Err(BotError::AnotherError("Unrecognized message. None user dialog at store and not a command message".to_string()));
+                Err(BotError::AnotherError("Unrecognized message. None user dialog at store and not a command message".to_string()))
             }
         }
         Err(_) => {
@@ -229,7 +229,7 @@ async fn handle_not_a_command_message(
 mod test {
     use mockito::server_url;
 
-    use crate::store::simple_store::DialogEntity;
+    use crate::store::DialogEntity;
     use crate::telegram::test_helpers::mock_send_message_success;
     use crate::telegram::types::{
         InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup,
@@ -255,18 +255,9 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
         let markup = ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
             inline_keyboard: vec![vec![
-                InlineKeyboardButton {
-                    text: "₽".to_string(),
-                    callback_data: "₽".to_string(),
-                },
-                InlineKeyboardButton {
-                    text: "$".to_string(),
-                    callback_data: "$".to_string(),
-                },
-                InlineKeyboardButton {
-                    text: "€".to_string(),
-                    callback_data: "€".to_string(),
-                },
+                InlineKeyboardButton::new("₽"),
+                InlineKeyboardButton::new("$"),
+                InlineKeyboardButton::new("€"),
             ]],
         });
         let start_first_step_success_action = Message {

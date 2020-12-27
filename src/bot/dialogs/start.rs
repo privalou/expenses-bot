@@ -4,8 +4,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::bot::dialogs::Dialog;
 use crate::bot::error::BotError;
-use crate::bot::error::BotError::AnotherError;
-use crate::store::simple_store::{DialogEntity, Store, UserDataPatch};
+use crate::store::{DialogEntity, Store, UserDataPatch};
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup};
 
@@ -45,7 +44,7 @@ impl Dialog<Start> {
     ) -> Result<String, BotError> {
         info!("Received {} payload from user {}", payload, user_id);
 
-        let result = match self.current_step {
+        match self.current_step {
             Some(Start::CurrencySelection) => {
                 info!("received payload at Currency step {}", &payload);
                 let dialog_entity = DialogEntity::new_with(
@@ -54,7 +53,7 @@ impl Dialog<Start> {
                 )
                 .expect("Could not sent message because of invalid");
                 match store.update_user_data(
-                    UserDataPatch::new_with(Some(dialog_entity), Some(payload.to_string()), None),
+                    UserDataPatch::new_with(Some(dialog_entity), Some(payload.to_string())),
                     &user_id,
                 ) {
                     Ok(_) => {
@@ -67,7 +66,7 @@ impl Dialog<Start> {
                             .await?;
                         Ok(text_sent_to_user)
                     }
-                    Err(_) => Err(AnotherError("No such user at store".to_string())),
+                    Err(error) => Err(BotError::StoreError(error)),
                 }
             }
             Some(Start::AlreadyRegistered) => {
@@ -75,13 +74,13 @@ impl Dialog<Start> {
                     "received payload at AlreadyRegistered step from user {}, {}",
                     &payload, &user_id
                 );
-                let sent_to_user_text_message = telegram_client
+                let text_sent_to_user = telegram_client
                     .send_message(&Message {
                         chat_id: user_id,
                         text: "You are already registered. Use /help to see list of available commands.",
                         ..Default::default()
                     }).await?;
-                Ok(sent_to_user_text_message)
+                Ok(text_sent_to_user)
             }
             None => {
                 if store.is_registered(user_id) {
@@ -92,38 +91,26 @@ impl Dialog<Start> {
                     }).await?)
                 } else {
                     store.save_user(&user_id);
-                    let result_message_text = telegram_client
+                    let text_sent_to_user = telegram_client
                         .send_message(&Message {
                             chat_id: user_id,
                             text: "Choose your currency",
                             reply_markup: Some(&ReplyMarkup::InlineKeyboardMarkup(
                                 InlineKeyboardMarkup {
                                     inline_keyboard: vec![vec![
-                                        InlineKeyboardButton {
-                                            text: "₽".to_string(),
-                                            callback_data: "₽".to_string(),
-                                        },
-                                        InlineKeyboardButton {
-                                            text: "$".to_string(),
-                                            callback_data: "$".to_string(),
-                                        },
-                                        InlineKeyboardButton {
-                                            text: "€".to_string(),
-                                            callback_data: "€".to_string(),
-                                        },
+                                        InlineKeyboardButton::new("₽"),
+                                        InlineKeyboardButton::new("$"),
+                                        InlineKeyboardButton::new("€"),
                                     ]],
                                 },
                             )),
                             ..Default::default()
                         })
-                        .await
-                        .expect("hz chto ne tak");
-                    Ok(result_message_text)
+                        .await?;
+                    Ok(text_sent_to_user)
                 }
             }
-        };
-
-        Ok(result.expect("HZ CHTO ZA HUETA"))
+        }
     }
 }
 
@@ -140,24 +127,13 @@ mod test {
 
     #[tokio::test]
     async fn handle_current_step_success_start_first_step_with_not_registered_user() {
-        let mut store = Store::new();
-
-        let url = &server_url();
+        let store = Store::new();
 
         let markup = ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
             inline_keyboard: vec![vec![
-                InlineKeyboardButton {
-                    text: "₽".to_string(),
-                    callback_data: "₽".to_string(),
-                },
-                InlineKeyboardButton {
-                    text: "$".to_string(),
-                    callback_data: "$".to_string(),
-                },
-                InlineKeyboardButton {
-                    text: "€".to_string(),
-                    callback_data: "€".to_string(),
-                },
+                InlineKeyboardButton::new("₽"),
+                InlineKeyboardButton::new("$"),
+                InlineKeyboardButton::new("€"),
             ]],
         });
         let first_step_default_message = Message {
@@ -169,11 +145,12 @@ mod test {
 
         let mock = mock_send_message_success(TOKEN, &first_step_default_message);
 
-        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
+        let telegram_client =
+            TelegramClient::new_with(String::from(TOKEN), String::from(&server_url()));
 
         let dialog = Dialog::<Start>::new();
         let received_text = dialog
-            .handle_current_step(&mut store, &telegram_client, USER_ID, "")
+            .handle_current_step(&store, &telegram_client, USER_ID, "")
             .await
             .expect("Can not process start step");
         assert_eq!(received_text, first_step_default_message.text);

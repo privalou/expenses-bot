@@ -34,6 +34,16 @@ pub struct InlineKeyboardButton {
     pub callback_data: String,
 }
 
+impl InlineKeyboardButton {
+    #[allow(dead_code)]
+    pub fn new(text: &str) -> Self {
+        InlineKeyboardButton {
+            text: text.to_string(),
+            callback_data: text.to_string(),
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Serialize, Default)]
 pub struct InlineKeyboardMarkup {
