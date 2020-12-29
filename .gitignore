@@ -4,4 +4,4 @@
 .env
 test.env
 .tmp
-
+diesel.toml

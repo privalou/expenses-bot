@@ -40,10 +40,7 @@ impl TelegramClient {
             let resp: Value = from_str(&resp.text().await?)?;
             let resp = &resp["result"];
             let resp = &resp["text"];
-            let resp = match resp.as_str() {
-                Some(resp) => resp,
-                None => "",
-            };
+            let resp = resp.as_str().unwrap_or("");
             Ok(resp.to_string())
         } else {
             Err(resp.text().await?.into())
@@ -59,10 +56,7 @@ impl TelegramClient {
             let resp: Value = from_str(&resp.text().await?)?;
             let resp = &resp["result"];
             let resp = &resp["text"];
-            let resp = match resp.as_str() {
-                Some(resp) => resp,
-                None => "",
-            };
+            let resp = resp.as_str().unwrap_or("");
             Ok(resp.to_string())
         } else {
             Err(resp.text().await?.into())
