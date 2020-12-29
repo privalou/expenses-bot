@@ -2,6 +2,7 @@ use serde::de::DeserializeOwned;
 
 use crate::store::DialogEntity;
 
+pub use self::add::Add;
 pub use self::feedback::Feedback;
 pub use self::start::Start;
 use serde::Serialize;

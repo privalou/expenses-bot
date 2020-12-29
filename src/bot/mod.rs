@@ -2,7 +2,7 @@ use futures::StreamExt;
 use log::{error, info};
 use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
 
-use crate::bot::dialogs::{Dialog, Feedback, Start};
+use crate::bot::dialogs::{Add, Dialog, Feedback, Start};
 use crate::bot::error::BotError;
 use crate::store::Store;
 use crate::telegram::client::TelegramClient;
@@ -117,11 +117,43 @@ impl Bot {
 
         // TODO: Extract commands as enum
         let sent_text_message = match payload.as_ref() {
-            "/start" => start(&self.store, &self.telegram_client, &user_id).await?,
-            "/stop" => stop(&self.telegram_client, &user_id).await?,
-            "/feedback" => feedback(&self.store, &self.telegram_client, &user_id).await?,
-            "/help" => help(&self.telegram_client, &user_id).await?,
-            // "/add" => add(&self.store, &self.telegram_client, &user_id, &payload).await?,
+            "/start" => {
+                Dialog::<Start>::new()
+                    .handle_current_step(&self.store, &self.telegram_client, user_id, "")
+                    .await?
+            }
+            "/stop" => {
+                let sent_text = &self
+                    .telegram_client
+                    .send_message(&Message {
+                        chat_id: user_id,
+                        text: "User and subscriptions deleted",
+                        ..Default::default()
+                    })
+                    .await?;
+                sent_text.to_owned()
+            }
+            "/feedback" => {
+                Dialog::<Feedback>::new()
+                    .handle_current_step(&self.store, &self.telegram_client, user_id, "")
+                    .await?
+            }
+            "/help" => {
+                let sent_text = &self
+                    .telegram_client
+                    .send_message(&Message {
+                        chat_id: user_id,
+                        text: HELP_TEXT,
+                        ..Default::default()
+                    })
+                    .await?;
+                sent_text.to_owned()
+            }
+            "/add" => {
+                Dialog::<Add>::new()
+                    .handle_current_step(&self.store, &self.telegram_client, user_id, "")
+                    .await?
+            }
             _ => {
                 handle_not_a_command_message(&self.store, &self.telegram_client, &user_id, &payload)
                     .await?
@@ -129,57 +161,6 @@ impl Bot {
         };
         Ok(sent_text_message)
     }
-}
-
-async fn start(
-    store: &Store,
-    telegram_client: &TelegramClient,
-    user_id: &str,
-) -> Result<String, BotError> {
-    match Dialog::<Start>::new()
-        .handle_current_step(store, &telegram_client, user_id, "")
-        .await
-    {
-        Ok(sent_text_message) => Ok(sent_text_message),
-        Err(err) => Err(err),
-    }
-}
-
-async fn stop(telegram_client: &TelegramClient, user_id: &str) -> Result<String, BotError> {
-    let sent_text_message = telegram_client
-        .send_message(&Message {
-            chat_id: user_id,
-            text: "User and subscriptions deleted",
-            ..Default::default()
-        })
-        .await?;
-
-    Ok(sent_text_message)
-}
-
-async fn feedback(
-    store: &Store,
-    telegram_client: &TelegramClient,
-    user_id: &str,
-) -> Result<String, BotError> {
-    let sent_text_message = Dialog::<Feedback>::new()
-        .handle_current_step(&store, &telegram_client, user_id, "")
-        .await?;
-
-    Ok(sent_text_message)
-}
-
-async fn help(telegram_client: &TelegramClient, user_id: &str) -> Result<String, BotError> {
-    let sent_test_message = telegram_client
-        .send_message(&Message {
-            chat_id: user_id,
-            text: HELP_TEXT,
-            ..Default::default()
-        })
-        .await
-        .expect("Message hasn't been sent");
-
-    Ok(sent_test_message)
 }
 
 /// process if this message received from registered user else send don't get message
@@ -340,7 +321,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
     #[tokio::test]
     async fn feedback_for_registered_user_success() {
-        let mut store = Store::new();
+        let store = Store::new();
         store.save_user(USER_ID);
 
         let url = &server_url();
@@ -352,7 +333,9 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
         let mock = mock_send_message_success(TOKEN, &message);
         let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
 
-        assert!(feedback(&mut store, &telegram_client, USER_ID)
+        let bot = Bot::new_with(store, telegram_client);
+        assert!(bot
+            .handle_message("/feedback".to_string(), USER_ID)
             .await
             .is_ok());
 
@@ -361,18 +344,24 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
     #[tokio::test]
     async fn help_success() {
-        let url = &server_url();
         let help_message = Message {
             chat_id: USER_ID,
             text: HELP_TEXT,
             ..Default::default()
         };
         let mock = mock_send_message_success(TOKEN, &help_message);
-        let telegram_client = TelegramClient::new_with(String::from(TOKEN), String::from(url));
+        let bot = configure_bot_with_expected_message(help_message);
 
-        let result = help(&telegram_client, USER_ID).await;
+        let result = bot.handle_message("/help".to_string(), USER_ID).await;
         assert!(result.is_ok());
         assert_eq!(result.expect("Error in help"), "Successfully sent");
         mock.assert();
+    }
+
+    fn configure_bot_with_expected_message(message: Message) -> Bot {
+        let store = Store::new();
+        let telegram_client =
+            TelegramClient::new_with(String::from(TOKEN), String::from(&server_url()));
+        Bot::new_with(store, telegram_client)
     }
 }
