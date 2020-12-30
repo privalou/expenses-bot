@@ -22,6 +22,7 @@ You can send me these commands:
 /stop
 /feedback
 /help
+/add
 
 If you encounter any issues feel free to open an issue.
 Or you can also send feedback via /feedback command.
@@ -85,16 +86,10 @@ impl Bot {
                             .message
                             .expect("There is no message at callback query");
                         let data = query.data.expect("There is no data at callback query");
-                        let user_id;
-
-                        match message {
-                            MessageOrChannelPost::Message(message) => {
-                                user_id = message.chat.id().to_string();
-                            }
-                            MessageOrChannelPost::ChannelPost(post) => {
-                                user_id = post.chat.id.to_string();
-                            }
-                        }
+                        let user_id = match message {
+                            MessageOrChannelPost::Message(message) => message.chat.id().to_string(),
+                            MessageOrChannelPost::ChannelPost(post) => post.chat.id.to_string(),
+                        };
 
                         if let Err(e) = self.handle_message(data, &user_id).await {
                             error!("error handling message: {}", e);
@@ -250,11 +245,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
 
         let mock = mock_send_message_success(TOKEN, &start_first_step_success_action);
 
-        let store = Store::new();
-        let bot = Bot::new_with(
-            store,
-            TelegramClient::new_with(String::from(TOKEN), server_url()),
-        );
+        let bot = configure_bot();
         let message = bot.handle_message("/start".to_string(), USER_ID).await;
 
         //expect
@@ -350,7 +341,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
             ..Default::default()
         };
         let mock = mock_send_message_success(TOKEN, &help_message);
-        let bot = configure_bot_with_expected_message(help_message);
+        let bot = configure_bot();
 
         let result = bot.handle_message("/help".to_string(), USER_ID).await;
         assert!(result.is_ok());
@@ -358,7 +349,7 @@ you, leave your email. Or you can contact the author via telegram: @privalou \
         mock.assert();
     }
 
-    fn configure_bot_with_expected_message(message: Message) -> Bot {
+    fn configure_bot() -> Bot {
         let store = Store::new();
         let telegram_client =
             TelegramClient::new_with(String::from(TOKEN), String::from(&server_url()));
