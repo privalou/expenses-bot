@@ -1,4 +1,13 @@
 # expenses-bot
+
 Currently WIP.
 
-In order to run integration test you should create test.env file and add required env variables.
+## Setup
+
+To run an instance of this bot, you need a docker.
+
+```docker-compose -f integration-tests-setup.yml -p develop up -d postgres```
+
+To stop environment run:
+
+```docker-compose -f integration-tests-setup.yml -p develop down```

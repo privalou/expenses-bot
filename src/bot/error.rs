@@ -1,17 +1,19 @@
+use diesel::result::Error as DatabaseError;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Formatter;
 
-use crate::store::error::StoreError;
 use crate::telegram::error::TelegramError;
+use diesel::r2d2;
 use std::num::ParseFloatError;
 
 #[derive(Debug)]
 pub enum BotError {
     TelegramError(TelegramError),
-    AnotherError(String),
-    StoreError(StoreError),
+    CustomError(String),
+    DatabaseError(DatabaseError),
     ParsingError(ParseFloatError),
+    DatabaseConnectionError(r2d2::Error),
 }
 
 impl From<TelegramError> for BotError {
@@ -20,15 +22,15 @@ impl From<TelegramError> for BotError {
     }
 }
 
-impl From<StoreError> for BotError {
-    fn from(error: StoreError) -> Self {
-        BotError::StoreError(error)
+impl From<DatabaseError> for BotError {
+    fn from(error: DatabaseError) -> Self {
+        BotError::DatabaseError(error)
     }
 }
 
 impl From<String> for BotError {
     fn from(error_text: String) -> Self {
-        BotError::AnotherError(error_text)
+        BotError::CustomError(error_text)
     }
 }
 
@@ -38,15 +40,22 @@ impl From<ParseFloatError> for BotError {
     }
 }
 
+impl From<r2d2::Error> for BotError {
+    fn from(r2d2_error: r2d2::Error) -> Self {
+        BotError::DatabaseConnectionError(r2d2_error)
+    }
+}
+
 impl Error for BotError {}
 
 impl fmt::Display for BotError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             BotError::TelegramError(err) => err.fmt(f),
-            BotError::StoreError(err) => err.fmt(f),
-            BotError::AnotherError(err) => err.fmt(f),
+            BotError::DatabaseError(err) => err.fmt(f),
+            BotError::CustomError(err) => err.fmt(f),
             BotError::ParsingError(err) => err.fmt(f),
+            BotError::DatabaseConnectionError(err) => err.fmt(f),
         }
     }
 }

@@ -1,22 +1,47 @@
-use serde::de::DeserializeOwned;
+use std::fmt;
+use std::str::FromStr;
 
-use crate::store::DialogEntity;
+use serde::de::DeserializeOwned;
+use serde::export::Formatter;
+
+use crate::db::models::dialog::DialogEntity;
 
 pub use self::add::Add;
 pub use self::feedback::Feedback;
 pub use self::start::Start;
-use serde::Serialize;
 
 mod add;
 mod feedback;
 mod start;
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum Command {
+    Start,
+    Stop,
+    Feedback,
+    Help,
+    Add,
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let printable = match self {
+            Command::Start => "/start",
+            Command::Stop => "/stop",
+            Command::Feedback => "/feedback",
+            Command::Help => "/help",
+            Command::Add => "/add",
+        };
+        write!(f, "{}", printable)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Dialog<T>
 where
     T: std::hash::Hash + std::cmp::Eq,
 {
-    pub command: String,
+    pub command: Command,
     pub current_step: Option<T>,
 }
 
@@ -26,6 +51,13 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Debug,
 {
     fn from(dialog: DialogEntity) -> Self {
+        let command = match Command::from_str(&dialog.command) {
+            Ok(command) => command,
+            Err(_) => {
+                panic!("Dialog command can not be parsed!")
+            }
+        };
+
         let current_step = match &dialog.step {
             Some(value) => match T::from_str(value) {
                 Ok(value) => Some(value),
@@ -34,19 +66,40 @@ where
             None => None,
         };
         Dialog {
-            command: dialog.command,
+            command,
             current_step,
         }
     }
 }
 
-// idk how stupid it is
+impl FromStr for Command {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Command, Self::Err> {
+        match input {
+            "/start" => Ok(Command::Start),
+            "/stop" => Ok(Command::Stop),
+            "/feedback" => Ok(Command::Feedback),
+            "/help" => Ok(Command::Help),
+            "/add" => Ok(Command::Add),
+            _ => Err(()),
+        }
+    }
+}
+
 impl<T> From<&DialogEntity> for Dialog<T>
 where
     T: std::hash::Hash + std::cmp::Eq + DeserializeOwned + std::str::FromStr,
     <T as std::str::FromStr>::Err: std::fmt::Debug,
 {
     fn from(dialog: &DialogEntity) -> Self {
+        let command = match Command::from_str(&dialog.command) {
+            Ok(command) => command,
+            Err(_) => {
+                panic!("Dialog command can not be parsed!")
+            }
+        };
+
         let current_step = match &dialog.step {
             Some(value) => match T::from_str(value) {
                 Ok(value) => Some(value),
@@ -55,25 +108,8 @@ where
             None => None,
         };
         Dialog {
-            command: dialog.command.to_string(),
+            command,
             current_step,
-        }
-    }
-}
-
-impl<T> Into<DialogEntity> for Dialog<T>
-where
-    T: std::hash::Hash + std::cmp::Eq + Serialize + std::string::ToString,
-{
-    fn into(self) -> DialogEntity {
-        let step = match self.current_step {
-            None => None,
-            Some(value) => Some(value.to_string()),
-        };
-
-        DialogEntity {
-            command: self.command,
-            step,
         }
     }
 }
@@ -83,29 +119,72 @@ mod tests {
     use super::*;
 
     #[test]
-    fn conversion_works() {
-        let dialog = Dialog::<Start>::new();
-        // TODO: is there some way to do the conversion without cloning?
-        let command: DialogEntity = (dialog.clone()).into();
+    fn command_to_string() {
+        assert_eq!(Command::Start.to_string(), "/start");
+    }
 
-        assert_eq!(
-            command,
-            DialogEntity {
-                command: "/start".to_string(),
-                step: None,
-            }
+    #[test]
+    fn from_string_command() {
+        let start_command: Command = "/start".parse().unwrap();
+        assert_eq!(Command::Start, start_command);
+    }
+
+    #[test]
+    fn error_at_parsing_invalid_command() {
+        let command_result: Result<Command, ()> = "start".parse();
+        assert!(command_result.is_err());
+    }
+
+    #[test]
+    fn invalid_current_step_is_none() {
+        let entity: DialogEntity = DialogEntity::new(
+            "user_id".to_string(),
+            "/start".to_string(),
+            Some("foo".to_string()),
         );
-        let mut dialog_converted: Dialog<Start> = command.into();
-        assert_eq!(dialog_converted, dialog);
 
-        dialog_converted.current_step = Some(Start::CurrencySelection);
-        let command_converted: DialogEntity = (dialog_converted.clone()).into();
+        let dialog_converted: Dialog<Start> = entity.into();
 
         assert_eq!(
-            command_converted,
-            DialogEntity {
-                command: "/start".to_string(),
-                step: Some("CurrencySelection".to_string()),
+            dialog_converted,
+            Dialog {
+                command: Command::Start,
+                current_step: None,
+            }
+        )
+    }
+
+    #[test]
+    fn conversion_works_with_current_step_none() {
+        let entity: DialogEntity =
+            DialogEntity::new("user_id".to_string(), "/start".to_string(), None);
+
+        let dialog_converted: Dialog<Start> = entity.into();
+
+        assert_eq!(
+            dialog_converted,
+            Dialog {
+                command: Command::Start,
+                current_step: None,
+            }
+        )
+    }
+
+    #[test]
+    fn conversion_works_with_current_step_some() {
+        let entity: DialogEntity = DialogEntity::new(
+            "user_id".to_string(),
+            "/start".to_string(),
+            Some("CurrencySelection".to_string()),
+        );
+
+        let dialog_converted: Dialog<Start> = entity.into();
+
+        assert_eq!(
+            dialog_converted,
+            Dialog {
+                command: Command::Start,
+                current_step: Some(Start::CurrencySelection),
             }
         )
     }
