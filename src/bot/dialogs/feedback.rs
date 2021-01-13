@@ -52,7 +52,7 @@ impl Dialog<Feedback> {
                 let entity = DialogEntity::new(
                     user_id.to_string(),
                     Command::Feedback.to_string(),
-                    Some(Feedback::Start.to_string()),
+                    Some(Feedback::Input.to_string()),
                 );
                 DialogEntity::update_dialog(&entity, conn)?;
 

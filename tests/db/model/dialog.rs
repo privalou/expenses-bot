@@ -1,11 +1,8 @@
-use std::env;
-
-use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::result::Error;
-use diesel::{Connection, PgConnection};
+use diesel::Connection;
 
+use crate::db::model::test_helper::establish_connection;
 use expenses::bot::dialogs::Command;
-use expenses::db::migrate_and_config_db;
 use expenses::db::models::dialog::DialogEntity;
 use expenses::db::models::user::UserEntity;
 
@@ -20,17 +17,13 @@ fn dialog_integration_test() {
         UserEntity::save_user(USER_ID, &conn).unwrap();
         let dialog_option = DialogEntity::get_user_dialog(USER_ID, &conn).unwrap();
         assert_eq!(
-            DialogEntity::new(USER_ID.to_string(), Command::Start.to_string(), None,),
+            DialogEntity::new(
+                USER_ID.to_string(),
+                Command::Start.to_string(),
+                Some("CurrencySelection".to_string()),
+            ),
             dialog_option
         );
         Ok(())
     });
-}
-
-fn establish_connection() -> PooledConnection<ConnectionManager<PgConnection>> {
-    dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
-    let db_url = env::var("DATABASE_URL")
-        .expect("Set DATABASE_URL environment variable or configure it at test.env file");
-    let pool = migrate_and_config_db(&db_url);
-    pool.get().unwrap()
 }

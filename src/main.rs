@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::logger::init_logger().expect("Can not run logging!");
 
     let token = env::var("TELEGRAM_BOT_TOKEN").expect("Missing TELEGRAM_BOT_TOKEN env var");
-    let db_url = env::var("TELEGRAM_BOT_TOKEN").expect("Missing TELEGRAM_BOT_TOKEN env var");
+    let db_url = env::var("DATABASE_URL").expect("Missing DATABASE_URL env var");
 
     start(token, db_url).await?;
 
