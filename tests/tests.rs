@@ -7,6 +7,7 @@ mod bot {
 mod db {
     mod model {
         mod dialog;
+        mod history;
         mod test_helper;
         mod user;
     }

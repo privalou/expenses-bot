@@ -46,8 +46,6 @@ impl Dialog<Start> {
     ) -> Result<String, BotError> {
         info!("Received {} payload from user {}", payload, user_id);
 
-        // if current step None check at database before create entity
-
         let current_step = match self.current_step {
             None => match DialogEntity::get_user_dialog(user_id, conn) {
                 Err(_) => None,

@@ -60,14 +60,19 @@ impl Bot {
                             let user_id = message.from.id.to_string();
                             if let Err(e) = self.handle_message(data, &user_id).await {
                                 error!("error handling message: {}", e);
-                                self.telegram_client
-                                    .send_message(&Message {
-                                        chat_id: &user_id,
-                                        text: ERROR_TEXT,
-                                        ..Default::default()
-                                    })
-                                    .await
-                                    .ok();
+                                match e {
+                                    BotError::ParsingError(_) => (),
+                                    _ => {
+                                        self.telegram_client
+                                            .send_message(&Message {
+                                                chat_id: &user_id,
+                                                text: ERROR_TEXT,
+                                                ..Default::default()
+                                            })
+                                            .await
+                                            .ok();
+                                    }
+                                }
                             }
                         }
                     }
@@ -171,6 +176,12 @@ async fn handle_not_a_command_message(
                 }
                 Command::Feedback => {
                     let dialog: Dialog<Feedback> = dialog_entity.into();
+                    dialog
+                        .handle_current_step(conn, telegram_client, user_id, payload)
+                        .await?
+                }
+                Command::Add => {
+                    let dialog: Dialog<Add> =dialog_entity.into();
                     dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
                         .await?
