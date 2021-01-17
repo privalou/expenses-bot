@@ -51,7 +51,6 @@ jobs:
           USER_ID: 54981987
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TEST_TELEGRAM_BOT_TOKEN }}
-          directory: /expenses
           file_name: test.env
       - name: Create .env file
         uses: SpicyPizza/create-envfile@v1
