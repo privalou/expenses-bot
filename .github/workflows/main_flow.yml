@@ -51,6 +51,7 @@ jobs:
           envkey_USER_ID: 54981987
           envkey_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           envkey_TELEGRAM_BOT_TOKEN: ${{ secrets.TEST_TELEGRAM_BOT_TOKEN }}
+          directory: /expenses
           file_name: test.env
       - name: Create .env file
         uses: SpicyPizza/create-envfile@v1
