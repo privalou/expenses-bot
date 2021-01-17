@@ -72,5 +72,5 @@ fn establish_connection() -> PgConnection {
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let db_url = env::var("DATABASE_URL")
         .expect("Set DATABASE_URL environment variable or configure it at test.env file");
-    PgConnection::establish(&db_url).unwrap()
+    PgConnection::establish(&db_url).expect(&format!("Can not process db url: {}", db_url))
 }

@@ -6,18 +6,18 @@ Currently WIP.
 
 To run an instance of this bot, you need a docker.
 
-```docker-compose -f docker-compose/app-setup.yml -p develop up -d postgres```
+```docker-compose -p develop --env-file ./docker-compose/.env up -d```
 
 To stop environment run:
 
-```docker-compose -f docker-compose/app-setup.yml -p develop down```
+```docker-compose -p develop down```
 
 ## Test-Setup
 
-To run integration tests run this command.
+To run environment for integration tests run this command.
 
-```docker-compose -f docker-compose/integration-tests-setup.yml -p it up -d postgres```
+```docker-compose -p it --env-file ./docker-compose/.env.test up -d```
 
 To stop environment run:
 
-```docker-compose -f docker-compose/integration-tests-setup.yml -p it down```
+```docker-compose -p it down```
