@@ -43,6 +43,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+      - name: Build the docker-compose stack
+        run: docker-compose -f docker-compose/integration-tests-setup.yml -p it up -d postgres
+      - name: Check running containers
+        run: docker ps -a
       - name: Build
         run: cargo build --verbose
       - name: Create test.env file
