@@ -1,0 +1,13 @@
+version: '3.3'
+
+services:
+  postgres:
+    container_name: postgres
+    command: "-d"
+    env_file: .env
+    user: "root"
+    image: postgres
+    ports:
+      - "${POSTGRES_PORTS}"
+    restart: on-failure
+
