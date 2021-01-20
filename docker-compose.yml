@@ -8,5 +8,10 @@ services:
     image: postgres
     ports:
       - ${POSTGRES_PORTS}
+    volumes:
+      - pg:/var/lib/postgresql/data
     restart: on-failure
+volumes:
+  pg:
+    name: "pg"
 
