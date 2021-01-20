@@ -44,7 +44,7 @@ jobs:
         with:
           command: check
       - name: Build the docker-compose stack
-        run: docker-compose -f ./docker-compose/docker-compose.yml -p it  --env-file ./docker-compose/.env.test up
+        run: docker-compose -p it  --env-file ./docker-compose/.env.test up -d
       - name: Check running containers
         run: docker ps -a
       - name: Build
