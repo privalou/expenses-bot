@@ -44,7 +44,7 @@ jobs:
         with:
           command: check
       - name: Build the docker-compose stack
-        run: docker-compose -f ./docker-compose/docker-compose.yml -p it  --env-file ./docker-compose/.env.test up
+        run: docker-compose -f ./docker-compose/docker-compose.yml -p it  --env-file ./docker-compose/.env.prod.test up
       - name: Check running containers
         run: docker ps -a
       - name: Build
@@ -57,13 +57,13 @@ jobs:
           envkey_TELEGRAM_BOT_TOKEN: ${{ secrets.TEST_TELEGRAM_BOT_TOKEN }}
           directory: /expenses
           file_name: test.env
-      - name: Create .env file
+      - name: Create .env.prod file
         uses: SpicyPizza/create-envfile@v1
         with:
           envkey_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           envkey_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           directory: /expenses
-          file_name: .env
+          file_name: .env.prod
       - name: Run unit tests
         run: cargo test --lib --verbose
       - name: Run cargo test
