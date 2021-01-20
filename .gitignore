@@ -1,7 +1,7 @@
 /target
 **/*.rs.bk
 .idea
-.env
+./.env
 test.env
 .tmp
 diesel.toml

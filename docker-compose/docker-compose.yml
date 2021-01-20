@@ -4,10 +4,10 @@ services:
   postgres:
     container_name: postgres
     command: "-d"
-    env_file: .env.prod
+    env_file: .env
     user: "root"
     image: postgres
     ports:
-      - "${POSTGRES_PORTS}"
+      - ${POSTGRES_PORTS}
     restart: on-failure
 

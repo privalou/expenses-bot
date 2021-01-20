@@ -6,7 +6,7 @@ Currently WIP.
 
 To run an instance of this bot, you need a docker.
 
-```docker-compose -f docker-compose/docker-compose.yml -p develop --env-file ./docker-compose/.env.prod up```
+```docker-compose -f docker-compose/docker-compose.yml -p develop --env-file ./docker-compose/.env up```
 
 To stop environment run:
 
