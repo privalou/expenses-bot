@@ -4,7 +4,7 @@ use std::fmt;
 use std::fmt::Formatter;
 
 use crate::telegram::error::TelegramError;
-use diesel::r2d2;
+use r2d2::Error as DatabaseConnectionError;
 use std::num::ParseFloatError;
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub enum BotError {
     CustomError(String),
     DatabaseError(DatabaseError),
     ParsingError(ParseFloatError),
-    DatabaseConnectionError(r2d2::Error),
+    DatabaseConnectionError(DatabaseConnectionError),
 }
 
 impl From<TelegramError> for BotError {
@@ -40,8 +40,8 @@ impl From<ParseFloatError> for BotError {
     }
 }
 
-impl From<r2d2::Error> for BotError {
-    fn from(r2d2_error: r2d2::Error) -> Self {
+impl From<DatabaseConnectionError> for BotError {
+    fn from(r2d2_error: DatabaseConnectionError) -> Self {
         BotError::DatabaseConnectionError(r2d2_error)
     }
 }

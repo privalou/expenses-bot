@@ -6,3 +6,4 @@ test.env
 .tmp
 diesel.toml
 ./dev.env
+dev.env

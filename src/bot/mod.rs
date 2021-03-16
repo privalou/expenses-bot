@@ -28,6 +28,7 @@ You can send me these commands:
 /start
 /feedback
 /help
+/history
 /add
 
 If you encounter any issues feel free to open an issue.
@@ -114,11 +115,7 @@ impl Bot {
     pub async fn handle_message(&self, payload: String, user_id: &str) -> Result<String, BotError> {
         info!("received message from: {}, message: {}", user_id, payload);
 
-        // todo: fix!
-        let connection = self
-            .store_pool
-            .get()
-            .expect("Can not get connection from pool.");
+        let connection = self.store_pool.get()?;
 
         let sent_text_message = match payload.as_ref() {
             "/start" => {
@@ -181,7 +178,7 @@ async fn handle_not_a_command_message(
                         .await?
                 }
                 Command::Add => {
-                    let dialog: Dialog<Add> =dialog_entity.into();
+                    let dialog: Dialog<Add> = dialog_entity.into();
                     dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
                         .await?
