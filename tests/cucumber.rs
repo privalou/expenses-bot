@@ -11,8 +11,8 @@ impl Cat {
     }
 }
 
-pub struct AnimalWorld {
-    cat: Cat,
+pub struct BotTestTheWorld {
+    bot: Bot,
 }
 
 #[async_trait(?Send)]

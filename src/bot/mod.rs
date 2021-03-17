@@ -1,22 +1,21 @@
 use std::str::FromStr;
 
-use diesel::r2d2;
-use diesel::r2d2::ConnectionManager;
 use futures::StreamExt;
 use log::{error, info};
 use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
 
-use crate::bot::dialogs::{Add, Command, Dialog, Feedback, Start};
-use crate::bot::error::BotError;
-use crate::db::models::dialog::DialogEntity;
-use crate::db::{migrate_and_config_db, Connection};
-use crate::telegram::client::TelegramClient;
-use crate::telegram::types::Message;
+use crate::{
+    bot::{
+        dialogs::{Add, Command, Dialog, Feedback, Start},
+        error::BotError
+    },
+    db::{Connection, DbConnectionPool, models::dialog::DialogEntity},
+    telegram::{client::TelegramClient, types::Message}
+};
 
 pub mod dialogs;
 pub mod error;
 
-pub type Pool = r2d2::Pool<ConnectionManager<Connection>>;
 
 const ERROR_TEXT: &str = r#"
 Looks like I'm having a technical glitch. Something went wrong.
@@ -36,16 +35,16 @@ Or you can also send feedback via /feedback command.
 "#;
 
 pub struct Bot {
-    store_pool: Pool,
+    connection_pool: DbConnectionPool,
     telegram_client: TelegramClient,
 }
 
 impl Bot {
     pub fn new(token: &str, db_url: &str) -> Self {
-        let store_pool = migrate_and_config_db(db_url);
+        let connection_pool = DbConnectionPool::new(db_url);
         let telegram_client = TelegramClient::new(token.to_string());
         Bot {
-            store_pool,
+            connection_pool,
             telegram_client,
         }
     }
@@ -106,7 +105,15 @@ impl Bot {
                             self.telegram_client.send_message(&error_message).await.ok();
                         }
                     }
-                    _ => {}
+
+                    UpdateKind::EditedMessage(_) => {}
+                    UpdateKind::ChannelPost(_) => {}
+                    UpdateKind::EditedChannelPost(_) => {}
+                    UpdateKind::InlineQuery(_) => {}
+                    UpdateKind::Poll(_) => {}
+                    UpdateKind::PollAnswer(_) => {}
+                    UpdateKind::Error(_) => {}
+                    UpdateKind::Unknown => {}
                 }
             }
         }
@@ -115,7 +122,7 @@ impl Bot {
     pub async fn handle_message(&self, payload: String, user_id: &str) -> Result<String, BotError> {
         info!("received message from: {}, message: {}", user_id, payload);
 
-        let connection = self.store_pool.get()?;
+        let connection = self.connection_pool.establish_connection();
 
         let sent_text_message = match payload.as_ref() {
             "/start" => {
