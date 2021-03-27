@@ -4,6 +4,7 @@ use crate::telegram::error::TelegramError;
 use crate::telegram::types::{EditImage, EditMessage, Image, Message};
 use reqwest::{Client, Response};
 use serde_json::{from_str, Value};
+use telegram_bot::{Api, UpdatesStream};
 
 pub struct TelegramClient {
     token: String,
@@ -22,6 +23,11 @@ impl TelegramClient {
     #[allow(dead_code)]
     pub fn new_with(token: String, domain: String) -> TelegramClient {
         TelegramClient { token, domain }
+    }
+
+    pub fn stream(&self) -> UpdatesStream {
+        let api = Api::new(&self.token);
+        api.stream()
     }
 
     #[allow(dead_code)]

@@ -22,12 +22,13 @@ postgres = "0.19.0"
 r2d2 = "0.8.9"
 strum = "0.18.0"
 strum_macros = "0.18.0"
-telegram-bot = { git = 'https://github.com/telegram-rs/telegram-bot' }
+telegram-bot = "0.8"
+tracing="0.1.25"
 tokio-core = "0.1.17"
 chrono = "0.4"
 
 [dev-dependencies]
-cucumber = { package = "cucumber_rust", version = "^0.7.0" }
+cucumber_rust = { git = "https://github.com/bbqsrc/cucumber-rust", branch = "main" }
 fake = "2"
 mockito = "0.27.0"
 serial_test = "0.5.0"

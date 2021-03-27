@@ -2,20 +2,19 @@ use std::str::FromStr;
 
 use futures::StreamExt;
 use log::{error, info};
-use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
+use telegram_bot::{MessageKind, UpdateKind};
 
 use crate::{
     bot::{
         dialogs::{Add, Command, Dialog, Feedback, Start},
-        error::BotError
+        error::BotError,
     },
-    db::{Connection, DbConnectionPool, models::dialog::DialogEntity},
-    telegram::{client::TelegramClient, types::Message}
+    db::{models::dialog::DialogEntity, Connection, DbConnectionPool},
+    telegram::{client::TelegramClient, types::Message},
 };
 
 pub mod dialogs;
 pub mod error;
-
 
 const ERROR_TEXT: &str = r#"
 Looks like I'm having a technical glitch. Something went wrong.
@@ -49,9 +48,8 @@ impl Bot {
         }
     }
 
-    pub async fn init_bot(&self, token: &str) {
-        let api = Api::new(&token);
-        let mut stream = api.stream();
+    pub async fn init_bot(&self) {
+        let mut stream = self.telegram_client.stream();
         while let Some(update) = stream.next().await {
             if let Ok(update) = update {
                 match update.kind {
@@ -86,14 +84,8 @@ impl Bot {
                             info!("empty data in callback query");
                             continue;
                         }
-                        let message = query
-                            .message
-                            .expect("There is no message at callback query");
                         let data = query.data.expect("There is no data at callback query");
-                        let user_id = match message {
-                            MessageOrChannelPost::Message(message) => message.chat.id().to_string(),
-                            MessageOrChannelPost::ChannelPost(post) => post.chat.id.to_string(),
-                        };
+                        let user_id = query.from.id.to_string();
 
                         if let Err(e) = self.handle_message(data, &user_id).await {
                             error!("error handling message: {}", e);
@@ -105,15 +97,7 @@ impl Bot {
                             self.telegram_client.send_message(&error_message).await.ok();
                         }
                     }
-
-                    UpdateKind::EditedMessage(_) => {}
-                    UpdateKind::ChannelPost(_) => {}
-                    UpdateKind::EditedChannelPost(_) => {}
-                    UpdateKind::InlineQuery(_) => {}
-                    UpdateKind::Poll(_) => {}
-                    UpdateKind::PollAnswer(_) => {}
-                    UpdateKind::Error(_) => {}
-                    UpdateKind::Unknown => {}
+                    _ => {}
                 }
             }
         }

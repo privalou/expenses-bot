@@ -13,6 +13,6 @@ pub mod telegram;
 
 pub async fn start(tg_token: String, db_url: String) -> Result<(), BotError> {
     let bot = Bot::new(&tg_token, &db_url);
-    bot.init_bot(&tg_token).await;
+    bot.init_bot().await;
     Ok(())
 }

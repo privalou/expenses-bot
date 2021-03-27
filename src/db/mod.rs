@@ -1,17 +1,11 @@
 use diesel::{
-    PgConnection,
     r2d2::{ConnectionManager, Pool as R2D2Pool, PooledConnection},
-    RunQueryDsl
+    PgConnection, RunQueryDsl,
 };
 
 use log::info;
 
-
-use crate::db::schema::{
-    dialogs::dsl::dialogs,
-    history::dsl::history,
-    users::dsl::users
-};
+use crate::db::schema::{dialogs::dsl::dialogs, history::dsl::history, users::dsl::users};
 
 mod schema;
 
@@ -22,7 +16,6 @@ embed_migrations!();
 pub type Connection = PooledConnection<ConnectionManager<PgConnection>>;
 
 pub type Pool = R2D2Pool<ConnectionManager<PgConnection>>;
-
 
 pub struct DbConnectionPool {
     pool: Pool,
