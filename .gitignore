@@ -3,6 +3,10 @@
 .idea
 ./.env
 test.env
+./test.env
 .tmp
 diesel.toml
 ./dev.env
+dev.env
+*.org
+.env

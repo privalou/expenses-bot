@@ -12,7 +12,7 @@ use crate::telegram::types::Message;
 
 const FEEDBACK_TEXT: &str = "You can write your feedback. If you want the author to get back to \
 you, leave your email. Or you can contact the author via telegram: @privalou \
-Übermensch appoach is creating issue at github.com/privalou/expenses-bot";
+Übermensch appoach is creating issue at github.com/privalou/bot";
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Display, EnumString)]
 pub enum Feedback {

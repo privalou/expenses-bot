@@ -4,16 +4,16 @@ use std::fmt;
 use std::fmt::Formatter;
 
 use crate::telegram::error::TelegramError;
-use diesel::r2d2;
+use r2d2::Error as DatabaseConnectionError;
 use std::num::ParseFloatError;
 
 #[derive(Debug)]
 pub enum BotError {
     TelegramError(TelegramError),
-    CustomError(String),
+    UnrecognisedCommand(String),
     DatabaseError(DatabaseError),
     ParsingError(ParseFloatError),
-    DatabaseConnectionError(r2d2::Error),
+    DatabaseConnectionError(DatabaseConnectionError),
 }
 
 impl From<TelegramError> for BotError {
@@ -30,7 +30,7 @@ impl From<DatabaseError> for BotError {
 
 impl From<String> for BotError {
     fn from(error_text: String) -> Self {
-        BotError::CustomError(error_text)
+        BotError::UnrecognisedCommand(error_text)
     }
 }
 
@@ -40,8 +40,8 @@ impl From<ParseFloatError> for BotError {
     }
 }
 
-impl From<r2d2::Error> for BotError {
-    fn from(r2d2_error: r2d2::Error) -> Self {
+impl From<DatabaseConnectionError> for BotError {
+    fn from(r2d2_error: DatabaseConnectionError) -> Self {
         BotError::DatabaseConnectionError(r2d2_error)
     }
 }
@@ -53,7 +53,7 @@ impl fmt::Display for BotError {
         match self {
             BotError::TelegramError(err) => err.fmt(f),
             BotError::DatabaseError(err) => err.fmt(f),
-            BotError::CustomError(err) => err.fmt(f),
+            BotError::UnrecognisedCommand(err) => err.fmt(f),
             BotError::ParsingError(err) => err.fmt(f),
             BotError::DatabaseConnectionError(err) => err.fmt(f),
         }

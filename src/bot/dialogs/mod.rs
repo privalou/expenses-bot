@@ -8,19 +8,22 @@ use crate::db::models::dialog::DialogEntity;
 
 pub use self::add::Add;
 pub use self::feedback::Feedback;
+pub use self::history::History;
 pub use self::start::Start;
 
 mod add;
 mod feedback;
+mod history;
 mod start;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Command {
+    Add,
     Start,
     Stop,
     Feedback,
     Help,
-    Add,
+    History,
 }
 
 impl fmt::Display for Command {
@@ -31,6 +34,7 @@ impl fmt::Display for Command {
             Command::Feedback => "/feedback",
             Command::Help => "/help",
             Command::Add => "/add",
+            Command::History => "/history",
         };
         write!(f, "{}", printable)
     }
@@ -82,6 +86,7 @@ impl FromStr for Command {
             "/feedback" => Ok(Command::Feedback),
             "/help" => Ok(Command::Help),
             "/add" => Ok(Command::Add),
+            "/history" => Ok(Command::History),
             _ => Err(()),
         }
     }

@@ -1,10 +1,11 @@
-use diesel::r2d2::ConnectionManager;
-use diesel::{r2d2, PgConnection, RunQueryDsl};
+use diesel::{
+    r2d2::{ConnectionManager, Pool as R2D2Pool, PooledConnection},
+    PgConnection, RunQueryDsl,
+};
 use log::info;
+use std::fmt;
 
-use crate::db::schema::dialogs::dsl::dialogs;
-use crate::db::schema::history::dsl::history;
-use crate::db::schema::users::dsl::users;
+use crate::db::schema::{dialogs::dsl::dialogs, history::dsl::history, users::dsl::users};
 
 mod schema;
 
@@ -12,20 +13,37 @@ pub mod models;
 
 embed_migrations!();
 
-pub type Connection = PgConnection;
+pub type Connection = PooledConnection<ConnectionManager<PgConnection>>;
 
-pub type Pool = r2d2::Pool<ConnectionManager<Connection>>;
+pub type Pool = R2D2Pool<ConnectionManager<PgConnection>>;
 
-pub fn migrate_and_config_db(url: &str) -> Pool {
-    info!("Migrating and configurating database...");
-    let manager = ConnectionManager::<Connection>::new(url);
-    let pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
-    embedded_migrations::run(&pool.get().expect("Failed to get connection."))
-        .expect("Failed to run migrations");
+pub struct DbConnectionPool {
+    pool: Pool,
+}
 
-    pool
+impl fmt::Debug for DbConnectionPool {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DbConnectionPool")
+            .field("pool", &"foo")
+            .finish()
+    }
+}
+
+impl DbConnectionPool {
+    pub fn new(url: &str) -> Self {
+        info!("Migrating and configurating database...");
+        let manager = ConnectionManager::<PgConnection>::new(url);
+        let pool = R2D2Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
+        embedded_migrations::run(&pool.get().expect("Failed to get connection."))
+            .expect("Failed to run migrations");
+        DbConnectionPool { pool }
+    }
+
+    pub fn establish_connection(&self) -> Connection {
+        self.pool.get().expect("Can not get connection from pool")
+    }
 }
 
 pub fn clear_tables(conn: &Connection) -> usize {

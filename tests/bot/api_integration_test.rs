@@ -1,9 +1,9 @@
 use std::env;
 
-use diesel::{Connection, PgConnection};
+use bot::db::Connection;
 
-use expenses::bot::Bot;
-use expenses::db::clear_tables;
+use bot::bot::Bot;
+use bot::db::{clear_tables, DbConnectionPool};
 
 #[tokio::test]
 async fn full_commands_integration_flow() {
@@ -18,6 +18,7 @@ async fn full_commands_integration_flow() {
 /start
 /feedback
 /help
+/history
 /add
 
 If you encounter any issues feel free to open an issue.
@@ -38,7 +39,7 @@ Or you can also send feedback via /feedback command."#
         .await
         .unwrap();
 
-    assert_eq!("You can write your feedback. If you want the author to get back to you, leave your email. Or you can contact the author via telegram: @privalou Übermensch appoach is creating issue at github.com/privalou/expenses-bot".to_string(), response);
+    assert_eq!("You can write your feedback. If you want the author to get back to you, leave your email. Or you can contact the author via telegram: @privalou Übermensch appoach is creating issue at github.com/privalou/bot".to_string(), response);
 
     let response = bot
         .handle_message("Fooo".to_string(), &user_id)
@@ -68,9 +69,10 @@ pub fn clean_up() {
     clear_tables(&connection);
 }
 
-fn establish_connection() -> PgConnection {
+pub fn establish_connection() -> Connection {
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");
     let db_url = env::var("DATABASE_URL")
         .expect("Set DATABASE_URL environment variable or configure it at test.env file");
-    PgConnection::establish(&db_url).expect(&format!("Can not process db url: {}", db_url))
+    let pool = DbConnectionPool::new(&db_url);
+    pool.establish_connection()
 }

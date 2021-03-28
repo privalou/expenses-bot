@@ -56,6 +56,7 @@ impl DialogEntity {
             .first::<DialogEntity>(conn)
         {
             Ok(dialog) => Ok(dialog),
+
             Err(err) => {
                 error!("failed to retrieve dialog: {}", err);
                 Err(err)

@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::telegram::types::Message;
 
-pub fn mock_send_message_success(token: &str, message: &Message) -> Mock {
+pub fn mock_send_message_success(token: &str, message: &Message<'_>) -> Mock {
     let mock_text_message = match message.text.contains("\n") {
         true => "Successfully sent",
         false => message.text,
