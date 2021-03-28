@@ -1,22 +1,20 @@
 use std::str::FromStr;
 
-use diesel::r2d2;
-use diesel::r2d2::ConnectionManager;
 use futures::StreamExt;
 use log::{error, info};
-use telegram_bot::{Api, MessageKind, MessageOrChannelPost, UpdateKind};
+use telegram_bot::{MessageKind, UpdateKind};
 
-use crate::bot::dialogs::{Add, Command, Dialog, Feedback, Start};
-use crate::bot::error::BotError;
-use crate::db::models::dialog::DialogEntity;
-use crate::db::{migrate_and_config_db, Connection};
-use crate::telegram::client::TelegramClient;
-use crate::telegram::types::Message;
+use crate::{
+    bot::{
+        dialogs::{Add, Command, Dialog, Feedback, Start},
+        error::BotError,
+    },
+    db::{models::dialog::DialogEntity, Connection, DbConnectionPool},
+    telegram::{client::TelegramClient, types::Message},
+};
 
 pub mod dialogs;
 pub mod error;
-
-pub type Pool = r2d2::Pool<ConnectionManager<Connection>>;
 
 const ERROR_TEXT: &str = r#"
 Looks like I'm having a technical glitch. Something went wrong.
@@ -28,6 +26,7 @@ You can send me these commands:
 /start
 /feedback
 /help
+/history
 /add
 
 If you encounter any issues feel free to open an issue.
@@ -35,23 +34,22 @@ Or you can also send feedback via /feedback command.
 "#;
 
 pub struct Bot {
-    store_pool: Pool,
+    connection_pool: DbConnectionPool,
     telegram_client: TelegramClient,
 }
 
 impl Bot {
     pub fn new(token: &str, db_url: &str) -> Self {
-        let store_pool = migrate_and_config_db(db_url);
+        let connection_pool = DbConnectionPool::new(db_url);
         let telegram_client = TelegramClient::new(token.to_string());
         Bot {
-            store_pool,
+            connection_pool,
             telegram_client,
         }
     }
 
-    pub async fn init_bot(&self, token: &str) {
-        let api = Api::new(&token);
-        let mut stream = api.stream();
+    pub async fn init_bot(&self) {
+        let mut stream = self.telegram_client.stream();
         while let Some(update) = stream.next().await {
             if let Ok(update) = update {
                 match update.kind {
@@ -86,14 +84,8 @@ impl Bot {
                             info!("empty data in callback query");
                             continue;
                         }
-                        let message = query
-                            .message
-                            .expect("There is no message at callback query");
                         let data = query.data.expect("There is no data at callback query");
-                        let user_id = match message {
-                            MessageOrChannelPost::Message(message) => message.chat.id().to_string(),
-                            MessageOrChannelPost::ChannelPost(post) => post.chat.id.to_string(),
-                        };
+                        let user_id = query.from.id.to_string();
 
                         if let Err(e) = self.handle_message(data, &user_id).await {
                             error!("error handling message: {}", e);
@@ -114,11 +106,7 @@ impl Bot {
     pub async fn handle_message(&self, payload: String, user_id: &str) -> Result<String, BotError> {
         info!("received message from: {}, message: {}", user_id, payload);
 
-        // todo: fix!
-        let connection = self
-            .store_pool
-            .get()
-            .expect("Can not get connection from pool.");
+        let connection = self.connection_pool.establish_connection();
 
         let sent_text_message = match payload.as_ref() {
             "/start" => {
@@ -181,7 +169,7 @@ async fn handle_not_a_command_message(
                         .await?
                 }
                 Command::Add => {
-                    let dialog: Dialog<Add> =dialog_entity.into();
+                    let dialog: Dialog<Add> = dialog_entity.into();
                     dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
                         .await?

@@ -18,8 +18,6 @@ pub enum Add {
     Category,
 }
 
-/// Right now this step is a default state after registration.
-///
 impl Default for Dialog<Add> {
     fn default() -> Self {
         Self::new()

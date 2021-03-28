@@ -16,11 +16,12 @@ mod start;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
+    Add,
     Start,
     Stop,
     Feedback,
     Help,
-    Add,
+    History,
 }
 
 impl fmt::Display for Command {
@@ -31,6 +32,7 @@ impl fmt::Display for Command {
             Command::Feedback => "/feedback",
             Command::Help => "/help",
             Command::Add => "/add",
+            Command::History => "/history",
         };
         write!(f, "{}", printable)
     }
@@ -82,6 +84,7 @@ impl FromStr for Command {
             "/feedback" => Ok(Command::Feedback),
             "/help" => Ok(Command::Help),
             "/add" => Ok(Command::Add),
+            "/history" => Ok(Command::History),
             _ => Err(()),
         }
     }

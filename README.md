@@ -6,7 +6,7 @@ Currently WIP.
 
 To run an instance of this bot, you need a docker.
 
-```docker-compose -p develop --env-file ./docker-compose/.env up -d```
+```docker-compose -p develop --env-file ./.env up -d```
 
 To stop environment run:
 
@@ -16,7 +16,7 @@ To stop environment run:
 
 To run environment for integration tests run this command.
 
-```docker-compose -p it --env-file ./docker-compose/.env.test up -d```
+```docker-compose -p it --env-file ./env.test up -d```
 
 To stop environment run:
 
