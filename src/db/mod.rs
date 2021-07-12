@@ -2,8 +2,8 @@ use diesel::{
     r2d2::{ConnectionManager, Pool as R2D2Pool, PooledConnection},
     PgConnection, RunQueryDsl,
 };
-
 use log::info;
+use std::fmt;
 
 use crate::db::schema::{dialogs::dsl::dialogs, history::dsl::history, users::dsl::users};
 
@@ -19,6 +19,14 @@ pub type Pool = R2D2Pool<ConnectionManager<PgConnection>>;
 
 pub struct DbConnectionPool {
     pool: Pool,
+}
+
+impl fmt::Debug for DbConnectionPool {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DbConnectionPool")
+            .field("pool", &"foo")
+            .finish()
+    }
 }
 
 impl DbConnectionPool {

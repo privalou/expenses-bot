@@ -1,6 +1,8 @@
+use std::fmt::Result;
+
 use serde::Serialize;
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct Message<'a> {
     pub chat_id: &'a str,
     pub text: &'a str,
@@ -10,7 +12,7 @@ pub struct Message<'a> {
     pub reply_markup: Option<&'a ReplyMarkup>,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct EditMessage<'a> {
     pub chat_id: &'a str,
     pub message_id: &'a str,
@@ -28,7 +30,15 @@ pub enum ReplyMarkup {
     InlineKeyboardMarkup(InlineKeyboardMarkup),
 }
 
-#[derive(Serialize, Default, Clone)]
+impl std::fmt::Debug for ReplyMarkup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result {
+        f.debug_struct("ReplyMarkup")
+            .field("InlineKeyboardMarkup", &"foo")
+            .finish()
+    }
+}
+
+#[derive(Serialize, Debug, Default, Clone)]
 pub struct InlineKeyboardButton {
     pub text: String,
     pub callback_data: String,
@@ -45,19 +55,19 @@ impl InlineKeyboardButton {
 }
 
 #[allow(dead_code)]
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct InlineKeyboardMarkup {
     pub inline_keyboard: Vec<Vec<InlineKeyboardButton>>,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct Image<'a> {
     pub chat_id: &'a str,
     pub photo: &'a str,
     pub disable_notification: bool,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct EditImage<'a> {
     pub chat_id: &'a str,
     pub message_id: &'a str,
@@ -66,7 +76,7 @@ pub struct EditImage<'a> {
     pub media: Media<'a>,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct Media<'a> {
     #[serde(rename = "type")]
     pub type_: &'a str,

@@ -2,7 +2,7 @@ use diesel::result::Error;
 use diesel::Connection;
 
 use crate::db::model::test_helper::establish_connection;
-use expenses::db::models::user::UserEntity;
+use bot::db::models::user::UserEntity;
 
 #[test]
 fn users_integration_test() {

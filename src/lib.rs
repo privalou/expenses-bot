@@ -1,3 +1,20 @@
+#![warn(
+    anonymous_parameters,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    rust_2018_idioms,
+    private_doc_tests,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    unsafe_code,
+    unused_import_braces,
+    unused_results,
+    variant_size_differences
+)]
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]

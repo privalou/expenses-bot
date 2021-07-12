@@ -10,7 +10,7 @@ use std::num::ParseFloatError;
 #[derive(Debug)]
 pub enum BotError {
     TelegramError(TelegramError),
-    CustomError(String),
+    UnrecognisedCommand(String),
     DatabaseError(DatabaseError),
     ParsingError(ParseFloatError),
     DatabaseConnectionError(DatabaseConnectionError),
@@ -30,7 +30,7 @@ impl From<DatabaseError> for BotError {
 
 impl From<String> for BotError {
     fn from(error_text: String) -> Self {
-        BotError::CustomError(error_text)
+        BotError::UnrecognisedCommand(error_text)
     }
 }
 
@@ -53,7 +53,7 @@ impl fmt::Display for BotError {
         match self {
             BotError::TelegramError(err) => err.fmt(f),
             BotError::DatabaseError(err) => err.fmt(f),
-            BotError::CustomError(err) => err.fmt(f),
+            BotError::UnrecognisedCommand(err) => err.fmt(f),
             BotError::ParsingError(err) => err.fmt(f),
             BotError::DatabaseConnectionError(err) => err.fmt(f),
         }

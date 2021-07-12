@@ -1,5 +1,5 @@
+use bot::bot::Bot;
 use cucumber_rust::{async_trait, Context, Cucumber, World};
-use expenses::bot::Bot;
 use std::convert::Infallible;
 use std::env;
 
@@ -18,8 +18,8 @@ impl World for BotWorld {
 }
 
 mod addition_steps {
+    use bot::bot::Bot;
     use cucumber_rust::{t, Steps};
-    use expenses::bot::Bot;
 
     use crate::BotWorld;
 

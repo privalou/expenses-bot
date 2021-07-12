@@ -1,5 +1,5 @@
 [package]
-name = "expenses"
+name = "bot"
 version = "0.1.0"
 authors = ["Artem Privalov <privalov.dev@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.42"
+async-trait = "0.1.50"
 dotenv = "0.15"
 diesel = { version = "1.4.5", features = ["postgres", "r2d2", "chrono"] }
 diesel_migrations = "1.4.0"
@@ -32,6 +32,7 @@ cucumber_rust = { git = "https://github.com/bbqsrc/cucumber-rust", branch = "mai
 fake = "2"
 mockito = "0.27.0"
 serial_test = "0.5.0"
+mockall = "0.8.3"
 
 
 [[test]]

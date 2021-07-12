@@ -8,13 +8,15 @@ use crate::db::models::dialog::DialogEntity;
 
 pub use self::add::Add;
 pub use self::feedback::Feedback;
+pub use self::history::History;
 pub use self::start::Start;
 
 mod add;
 mod feedback;
+mod history;
 mod start;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Command {
     Add,
     Start,

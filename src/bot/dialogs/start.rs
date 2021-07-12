@@ -68,7 +68,7 @@ impl Dialog<Start> {
                     "/start".to_string(),
                     Some(Start::AlreadyRegistered.to_string()),
                 );
-                UserEntity::update_currency(payload, user_id, conn)?;
+                let _ = UserEntity::update_currency(payload, user_id, conn)?;
                 DialogEntity::update_dialog(&dialog_entity, &conn)?;
                 Ok(telegram_client
                     .send_message(&Message {
@@ -91,7 +91,7 @@ impl Dialog<Start> {
                     }).await?)
             }
             None => {
-                UserEntity::save_user(user_id, conn)?;
+                let _ = UserEntity::save_user(user_id, conn)?;
                 let reply_markup = ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
                     inline_keyboard: vec![vec![
                         InlineKeyboardButton::new("₽"),

@@ -2,9 +2,9 @@ use diesel::result::Error;
 use diesel::Connection;
 
 use crate::db::model::test_helper::establish_connection;
-use expenses::bot::dialogs::Command;
-use expenses::db::models::dialog::DialogEntity;
-use expenses::db::models::user::UserEntity;
+use bot::bot::dialogs::Command;
+use bot::db::models::dialog::DialogEntity;
+use bot::db::models::user::UserEntity;
 
 const USER_ID: &str = "user_id";
 

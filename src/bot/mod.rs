@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 use futures::StreamExt;
@@ -6,7 +7,7 @@ use telegram_bot::{MessageKind, UpdateKind};
 
 use crate::{
     bot::{
-        dialogs::{Add, Command, Dialog, Feedback, Start},
+        dialogs::{Add, Command, Dialog, Feedback, History, Start},
         error::BotError,
     },
     db::{models::dialog::DialogEntity, Connection, DbConnectionPool},
@@ -38,6 +39,12 @@ pub struct Bot {
     telegram_client: TelegramClient,
 }
 
+impl fmt::Debug for Bot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.telegram_client)
+    }
+}
+
 impl Bot {
     pub fn new(token: &str, db_url: &str) -> Self {
         let connection_pool = DbConnectionPool::new(db_url);
@@ -61,7 +68,8 @@ impl Bot {
                                 match e {
                                     BotError::ParsingError(_) => (),
                                     _ => {
-                                        self.telegram_client
+                                        let _ = self
+                                            .telegram_client
                                             .send_message(&Message {
                                                 chat_id: &user_id,
                                                 text: ERROR_TEXT,
@@ -94,7 +102,7 @@ impl Bot {
                                 text: ERROR_TEXT,
                                 ..Default::default()
                             };
-                            self.telegram_client.send_message(&error_message).await.ok();
+                            let _ = self.telegram_client.send_message(&error_message).await.ok();
                         }
                     }
                     _ => {}
@@ -135,6 +143,11 @@ impl Bot {
                     .handle_current_step(&connection, &self.telegram_client, user_id, "")
                     .await?
             }
+            "/history" => {
+                Dialog::<History>::new()
+                    .handle_current_step(&connection, &self.telegram_client, user_id, "")
+                    .await?
+            }
             _ => {
                 handle_not_a_command_message(&connection, &self.telegram_client, &user_id, &payload)
                     .await?
@@ -155,28 +168,27 @@ async fn handle_not_a_command_message(
         Ok(dialog_entity) => {
             let command = Command::from_str(&dialog_entity.command).expect("Can not process command. Problem with dialog entity probably");
 
-            let sent_message = match command {
+            match command {
                 Command::Start => {
                     let dialog: Dialog<Start> = dialog_entity.into();
-                    dialog
+                    Ok(dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
-                        .await?
+                        .await?)
                 }
                 Command::Feedback => {
                     let dialog: Dialog<Feedback> = dialog_entity.into();
-                    dialog
+                    Ok(dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
-                        .await?
+                        .await?)
                 }
                 Command::Add => {
                     let dialog: Dialog<Add> = dialog_entity.into();
-                    dialog
+                    Ok(dialog
                         .handle_current_step(conn, telegram_client, user_id, payload)
-                        .await?
+                        .await?)
                 }
-                _ => { unimplemented!() }
-            };
-            Ok(sent_message)
+                _ => {Err(BotError::UnrecognisedCommand("can not process such command".to_string()))}
+            }
         }
         Err(_) => {
             Ok(

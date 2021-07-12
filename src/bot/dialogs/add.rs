@@ -7,7 +7,7 @@ use strum_macros::{Display, EnumString};
 use crate::bot::dialogs::{Command, Dialog};
 use crate::bot::error::BotError;
 use crate::db::models::dialog::DialogEntity;
-use crate::db::models::history::HistoryEntity;
+use crate::db::models::history::{HistoryPatch, HistoryRepository};
 use crate::db::Connection;
 use crate::telegram::client::TelegramClient;
 use crate::telegram::types::Message;
@@ -53,7 +53,7 @@ impl Dialog<Add> {
                 let parsed_value = match f32::from_str(payload) {
                     Ok(value) => value,
                     Err(err) => {
-                        telegram_client
+                        let _ = telegram_client
                             .send_message(&Message {
                                 chat_id: &user_id,
                                 text: format!(
@@ -68,7 +68,7 @@ impl Dialog<Add> {
                         return Err(BotError::ParsingError(err));
                     }
                 };
-                HistoryEntity::add_expense_record(user_id.to_string(), parsed_value, conn)?;
+                HistoryRepository::add_expense_record(user_id.to_string(), parsed_value, conn)?;
                 DialogEntity::update_dialog(
                     &DialogEntity::new(
                         user_id.to_string(),
@@ -89,6 +89,11 @@ impl Dialog<Add> {
             Some(Add::Category) => {
                 DialogEntity::update_dialog(
                     &DialogEntity::new(user_id.to_string(), Command::Start.to_string(), None),
+                    conn,
+                )?;
+                HistoryRepository::update_latest_expense_record(
+                    user_id.to_string(),
+                    &HistoryPatch::new(None, Some(payload.to_string())),
                     conn,
                 )?;
                 Ok(telegram_client

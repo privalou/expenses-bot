@@ -1,4 +1,4 @@
-# expenses-bot
+# bot
 
 Currently WIP.
 

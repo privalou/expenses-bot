@@ -1,6 +1,6 @@
 use std::env;
 
-use expenses::db::{Connection, DbConnectionPool};
+use bot::db::{Connection, DbConnectionPool};
 
 pub fn establish_connection() -> Connection {
     dotenv::from_filename("test.env").expect("Failed to read env variables from test.env");

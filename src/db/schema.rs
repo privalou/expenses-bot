@@ -13,6 +13,7 @@ table! {
         amount -> Float,
         category -> Nullable<Text>,
         created -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 

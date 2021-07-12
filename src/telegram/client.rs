@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::error::Error;
 
 use crate::telegram::error::TelegramError;
@@ -6,9 +7,20 @@ use reqwest::{Client, Response};
 use serde_json::{from_str, Value};
 use telegram_bot::{Api, UpdatesStream};
 
+#[derive(Debug)]
 pub struct TelegramClient {
     token: String,
     domain: String,
+}
+
+#[async_trait]
+pub trait TelegramService {
+    fn stream(&self) -> UpdatesStream;
+    async fn send_message(&self, message: &Message<'_>) -> Result<String, TelegramError>;
+    async fn send_photo(&self, message: &Message<'_>) -> Result<String, TelegramError>;
+    async fn delete_message(&self, chat_id: &str, message_id: &str) -> Result<(), TelegramError>;
+    async fn edit_message_text(&self, message: &EditMessage<'_>) -> Result<(), Box<dyn Error>>;
+    async fn edit_message_image(&self, message: &EditImage<'_>) -> Result<(), Box<dyn Error>>;
 }
 
 #[allow(dead_code)]
