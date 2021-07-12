@@ -8,5 +8,8 @@ test.env
 diesel.toml
 ./dev.env
 dev.env
+<<<<<<< HEAD
 *.org
 .env
+=======
+>>>>>>> master
