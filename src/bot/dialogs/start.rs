@@ -70,25 +70,28 @@ impl Dialog<Start> {
                 );
                 let _ = UserEntity::update_currency(payload, user_id, conn)?;
                 DialogEntity::update_dialog(&dialog_entity, &conn)?;
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: user_id,
                         text: format!("Your currency is {}", payload).as_str(),
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
             Some(Start::AlreadyRegistered) => {
                 info!(
                     "received payload at AlreadyRegistered step from user {}, {}",
                     &payload, &user_id
                 );
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: user_id,
                         text: "You are already registered. Use /help to see list of available commands.",
                         ..Default::default()
-                    }).await?)
+                    })
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
             None => {
                 let _ = UserEntity::save_user(user_id, conn)?;
@@ -99,14 +102,15 @@ impl Dialog<Start> {
                         InlineKeyboardButton::new("€"),
                     ]],
                 });
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: user_id,
                         text: "Choose your currency",
                         reply_markup: Some(&reply_markup),
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
         }
     }

@@ -56,13 +56,14 @@ impl Dialog<Feedback> {
                 );
                 DialogEntity::update_dialog(&entity, conn)?;
 
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: &user_id,
                         text: FEEDBACK_TEXT,
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
 
             Feedback::Input => {
@@ -70,13 +71,14 @@ impl Dialog<Feedback> {
                 let entity = DialogEntity::new(user_id.to_string(), self.command.to_string(), None);
                 DialogEntity::update_dialog(&entity, conn)?;
 
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: user_id,
                         text: &format!("Thanks, {}, for you priceless feedback!", &user_id),
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
         }
     }

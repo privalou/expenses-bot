@@ -77,14 +77,15 @@ impl Dialog<Add> {
                     ),
                     conn,
                 )?;
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: &user_id,
                         text: format!("Write a category where you have spent {}.", parsed_value)
                             .as_str(),
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
             Some(Add::Category) => {
                 DialogEntity::update_dialog(
@@ -96,13 +97,14 @@ impl Dialog<Add> {
                     &HistoryPatch::new(None, Some(payload.to_string())),
                     conn,
                 )?;
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: &user_id,
                         text: "Record has been saved",
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
             None => {
                 DialogEntity::update_dialog(
@@ -113,13 +115,14 @@ impl Dialog<Add> {
                     ),
                     conn,
                 )?;
-                Ok(telegram_client
+                telegram_client
                     .send_message(&Message {
                         chat_id: &user_id,
                         text: "Write amount of money you have spent",
                         ..Default::default()
                     })
-                    .await?)
+                    .await
+                    .map_err(|e| BotError::TelegramError(e))
             }
         }
     }

@@ -43,20 +43,17 @@ impl Dialog<History> {
 
         let stringified_records = records
             .iter()
-            .map(|a| {
-                let string = format!("{:?}", a);
-                string
-            })
-            .collect::<String>();
+            .map(|a| a.print())
+            .collect::<Vec<String>>()
+            .join(", \n");
 
-        let _ = telegram_client
+        telegram_client
             .send_message(&Message {
                 chat_id: user_id,
                 text: &stringified_records,
                 ..Default::default()
             })
-            .await?;
-
-        Ok("Stub for history!".to_string())
+            .await
+            .map_err(|e| BotError::TelegramError(e))
     }
 }

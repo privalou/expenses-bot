@@ -44,6 +44,17 @@ pub struct HistoryPatch {
     pub updated: NaiveDateTime,
 }
 
+impl HistoryEntity {
+    pub fn print(&self) -> String {
+        format!(
+            "Amount: {}, Category: {}, Date: {} ",
+            self.amount,
+            self.category.as_ref().map_or("No category", |c| &c),
+            self.created
+        )
+    }
+}
+
 impl NewHistoryRecord {
     pub fn new(user_id: String, amount: f32, category: Option<String>) -> Self {
         NewHistoryRecord {
